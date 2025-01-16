@@ -44,6 +44,7 @@ class Asset:
         - 'future'
         - 'forex'
         - 'crypto'
+        - 'multileg'
     expiration : datetime.date (required if asset_type is 'option' or 'future')
         Contract expiration dates for futures and options.
     strike : float (required if asset_type is 'option')
@@ -112,6 +113,7 @@ class Asset:
         FOREX = "forex"
         CRYPTO = "crypto"
         INDEX = "index"
+        MULTILEG = "multileg"
 
     symbol: str
     asset_type: str = "stock"
@@ -139,7 +141,8 @@ class Asset:
         precision: str = None,
         underlying_asset: "Asset" = None,
     ):
-        self.symbol = symbol
+        # Capitalize the symbol because some brokers require it
+        self.symbol = symbol.upper() if symbol is not None else None
         self.asset_type = asset_type
         self.strike = strike
         self.multiplier = multiplier
@@ -196,10 +199,14 @@ class Asset:
             )
         elif symbol_info["type"] == "stock":
             return Asset(symbol=symbol, asset_type="stock")
+        elif symbol_info["type"] == "future":
+            return Asset(symbol=symbol, asset_type="future", expiration=symbol_info["expiration_date"])
+        elif symbol_info["type"] == "forex":
+            return Asset(symbol=symbol, asset_type="forex")
+        elif symbol_info["type"] == "crypto":
+            return Asset(symbol=symbol, asset_type="crypto")
         else:
-            # TODO: Handle Crypto and Forex Symbols
-            logging.info(f"Unknown symbol asset type {symbol_info['type']}, defaulting to stock.")
-            return Asset(symbol=symbol)
+            return Asset(symbol=None)
 
     def __hash__(self):
         return hash((self.symbol, self.asset_type, self.expiration, self.strike, self.right))
@@ -274,6 +281,31 @@ class Asset:
 
         return True
 
+    # ========= Serialization methods ===========
+    def to_dict(self):
+        return {
+            "symbol": self.symbol,
+            "asset_type": self.asset_type,
+            "expiration": self.expiration.strftime("%Y-%m-%d") if self.expiration else None,
+            "strike": self.strike,
+            "right": self.right,
+            "multiplier": self.multiplier,
+            "precision": self.precision,
+            "underlying_asset": self.underlying_asset.to_dict() if self.underlying_asset else None,
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            symbol=data["symbol"],
+            asset_type=data["asset_type"],
+            expiration=datetime.strptime(data["expiration"], "%Y-%m-%d").date() if data["expiration"] else None,
+            strike=data["strike"],
+            right=data["right"],
+            multiplier=data["multiplier"],
+            precision=data["precision"],
+            underlying_asset=cls.from_dict(data["underlying_asset"]) if data["underlying_asset"] else None,
+        )
 
 class AssetsMapping(UserDict):
     def __init__(self, mapping):

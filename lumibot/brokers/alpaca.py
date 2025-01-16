@@ -14,6 +14,7 @@ from termcolor import colored
 
 from lumibot.data_sources import AlpacaData
 from lumibot.entities import Asset, Order, Position
+from lumibot.tools.helpers import has_more_than_n_decimal_places
 
 from .broker import Broker
 
@@ -59,8 +60,8 @@ class Alpaca(Broker):
     ...     "API_KEY": "YOUR_API_KEY",
     ...     # Put your own Alpaca secret here:
     ...     "API_SECRET": "YOUR_API_SECRET",
-    ...     # If you want to go live, you must change this
-    ...     "ENDPOINT": "https://paper-api.alpaca.markets",
+    ...     # Set this to False to use a live account
+    ...     "PAPER": True
     ... }
     >>> alpaca = Alpaca(ALPACA_CONFIG)
     >>> print(alpaca.get_time_to_open())
@@ -77,8 +78,8 @@ class Alpaca(Broker):
     ...     "API_KEY": "YOUR_API_KEY",
     ...     # Put your own Alpaca secret here:
     ...     "API_SECRET": "YOUR_API_SECRET",
-    ...     # If you want to go live, you must change this
-    ...     "ENDPOINT": "https://paper-api.alpaca.markets",
+    ...     # Set this to False to use a live account
+    ...     "PAPER": True
     ... }
     >>>
     >>> class AlpacaStrategy(Strategy):
@@ -236,7 +237,7 @@ class Alpaca(Broker):
 
     # =========Positions functions==================
 
-    def _get_balances_at_broker(self, quote_asset):
+    def _get_balances_at_broker(self, quote_asset, strategy):
         """Get's the current actual cash, positions value, and total
         liquidation value from Alpaca.
 
@@ -248,7 +249,7 @@ class Alpaca(Broker):
         tuple of float
             (cash, positions_value, total_liquidation_value)
         """
-
+        
         response = self.api.get_account()
         total_cash_value = float(response.cash)
         gross_positions_value = float(response.long_market_value) - float(response.short_market_value)
@@ -397,6 +398,10 @@ class Alpaca(Broker):
         else:
             trade_symbol = order.asset.symbol
 
+        # If order type is OCO, set to limit (Alpaca wants this for OCO)
+        if order.type == Order.OrderType.OCO:
+            order.type = Order.OrderType.LIMIT
+
         kwargs = {
             "symbol": trade_symbol,
             "qty": qty,
@@ -442,6 +447,7 @@ class Alpaca(Broker):
             order.set_identifier(response.id)
             order.status = response.status
             order.update_raw(response)
+            self._unprocessed_orders.append(order)
 
         except Exception as e:
             order.set_error(e)
@@ -462,6 +468,32 @@ class Alpaca(Broker):
                 )
 
         return order
+
+    def _conform_order(self, order):
+        """Conform an order to Alpaca's requirements
+        See: https://docs.alpaca.markets/docs/orders-at-alpaca
+        """
+        if order.asset.asset_type == "stock" and order.type == "limit":
+            """
+            The minimum price variance exists for limit orders.
+            Orders received in excess of the minimum price variance will be rejected.
+            Limit price >=$1.00: Max Decimals = 2
+            Limit price <$1.00: Max Decimals = 4
+            """
+            orig_price = order.limit_price
+            conformed = False
+            if order.limit_price >= 1.0 and has_more_than_n_decimal_places(order.limit_price, 2):
+                    order.limit_price = round(order.limit_price, 2)
+                    conformed = True
+            elif order.limit_price < 1.0 and has_more_than_n_decimal_places(order.limit_price, 4):
+                order.limit_price = round(order.limit_price, 4)
+                conformed = True
+
+            if conformed:
+                logging.warning(
+                    f"Order {order} was changed to conform to Alpaca's requirements. "
+                    f"The limit price was changed from {orig_price} to {order.limit_price}."
+                )
 
     def cancel_order(self, order):
         """Cancel an order
@@ -516,14 +548,13 @@ class Alpaca(Broker):
         """
 
         async def _trade_update(trade_update):
-            self._orders_queue.join()
             try:
                 logged_order = trade_update.order
                 type_event = trade_update.event
                 identifier = logged_order.id
                 stored_order = self.get_tracked_order(identifier)
                 if stored_order is None:
-                    logging.info(f"Untracked order {identifier} was logged by broker {self.name}")
+                    logging.debug(f"Untracked order {identifier} was logged by broker {self.name}")
                     return False
 
                 price = trade_update.price

@@ -7,6 +7,15 @@ from lumibot.entities import Asset, Bars
 
 from .data_source import DataSource
 
+TYPE_MAP = dict(
+    stock="STK",
+    option="OPT",
+    future="FUT",
+    forex="CASH",
+    index="IND",
+    multileg="BAG",
+)
+
 
 class InteractiveBrokersData(DataSource):
     """Make Interactive Brokers connection and gets data.
@@ -301,7 +310,7 @@ class InteractiveBrokersData(DataSource):
         raise NotImplementedError(
             "Lumibot InteractiveBrokersData does not support get_chains options data. However, this is defined in"
             "the InteractiveBroker broker class as it has access to IBClient and IBWrapper functionality not available"
-            "here. If you need this feature, please use call the broker object method directly"
+            "here. If you need this feature, please call the broker object method directly"
         )
 
     def get_historical_prices(
@@ -348,9 +357,10 @@ class InteractiveBrokersData(DataSource):
                     asset,
                     exchange=exchange,
                     should_use_last_close=should_use_last_close,
+                    only_price=False,
                 )
                 if result:
-                    response[asset] = result[0]
+                    response[asset] = result["price"]
                     break
                 get_data_attempt += 1
             except:
@@ -370,3 +380,46 @@ class InteractiveBrokersData(DataSource):
     def get_yesterday_dividends(self, asset, quote=None):
         """Unavailable"""
         return None
+    
+    def get_quote(self, asset, quote=None, exchange=None):
+        """
+        This function returns the quote of an asset. The quote includes the bid and ask price.
+
+        Parameters
+        ----------
+        asset: Asset
+            The asset to get the quote for
+        quote: Asset
+            The quote asset to get the quote for (currently not used for Tradier)
+        exchange: str
+            The exchange to get the quote for (currently not used for Tradier)
+
+        Returns
+        -------
+        dict
+           Quote of the asset, including the bid, and ask price.
+        """
+        
+        if exchange is None:
+            exchange = "SMART"
+
+        get_data_attempt = 0
+        max_attempts = 2
+        while get_data_attempt < max_attempts:
+            try:
+                result = self.ib.get_tick(asset, exchange=exchange, only_price=False)
+                if result:
+                    # If bid or ask are -1 then they are not available.
+                    if result["bid"] == -1:
+                        result["bid"] = None
+                    if result["ask"] == -1:
+                        result["ask"] = None
+
+                    return result
+                get_data_attempt += 1
+            except:
+                get_data_attempt += 1
+
+        return None
+    
+    

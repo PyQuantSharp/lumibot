@@ -3,14 +3,14 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="What is Lumibot?" href="getting_started.html" />
+<link rel="index" title="Index" href="genindex.html" /><link rel="search" title="Search" href="search.html" /><link rel="next" title="Deployment Guide" href="deployment.html" />
 
     <!-- Generated with Sphinx 7.2.6 and Furo 2024.01.29 -->
-        <title>Lumibot documentation</title>
+        <title>Lumibot Documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=135e06be" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=36a5483c" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=1c0cb5c9" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=3791830b" />
     <link rel="stylesheet" type="text/css" href="_static/bootstrap/css/bootstrap.css?v=7edfbd0b" />
     
     
@@ -114,7 +114,16 @@
   <div class="visually-hidden">Hide table of contents sidebar</div>
 </label>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     
+    <div class="footer-banner bg-warning text-dark p-3">
+        <h5>Need Extra Help?</h5>
+        <p>Visit <a href="https://www.lumiwealth.com/?utm_source=documentation&utm_medium=referral&utm_campaign=lumibot_footer_banner" target="_blank" class="text-dark"><strong>Lumiwealth</strong></a> for courses, community, and profitable pre-made trading bots.</p>
+    </div>
+     
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -125,7 +134,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="#"><div class="brand">Lumibot  documentation</div></a>
+      <a href="#"><div class="brand">Lumibot Documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -147,8 +156,11 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="#">
   
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/Lumibot_Logo.webp" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/Lumibot_Logo.webp" alt="Dark Logo"/>
+  </div>
   
-  <span class="sidebar-brand-text">Lumibot  documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -158,10 +170,16 @@
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Home</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/Lumiwealth/lumibot">GitHUb</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://discord.gg/v6asVjTCvh">Community/Forum</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/Lumiwealth/lumibot">GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://discord.gg/v6asVjTCvh">Discord Community</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://lumiwealth.com/?utm_source=documentation&amp;utm_medium=referral&amp;utm_campaign=lumibot_sidebar">Get Pre-Built Profitable Strategies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html#secrets-configuration">Secrets Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html#broker-configuration">Broker Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html#general-environment-variables">General Environment Variables</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">What is Lumibot?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html#getting-started">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#id1">Lumiwealth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#getting-started-with-lumibot">Getting Started With Lumibot</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#adding-trading-fees">Adding Trading Fees</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#profiling-to-improve-performance">Profiling to Improve Performance</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="lifecycle_methods.html">Lifecycle Methods</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Lifecycle Methods</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -182,26 +200,27 @@
 <li class="toctree-l2"><a class="reference internal" href="lifecycle_methods.on_parameters_updated.html">def on_parameters_updated</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="vars.html">Variable Backup &amp; Restore</a></li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="strategy_methods.html">Strategy Methods</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of Strategy Methods</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.orders.html">Order Management</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of Order Management</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.create_order.html">self.create_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.submit_order.html">self.submit_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.submit_orders.html">self.submit_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.cancel_order.html">self.cancel_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.cancel_orders.html">self.cancel_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.cancel_open_orders.html">self.cancel_open_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_selling_order.html">self.get_selling_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.sell_all.html">self.sell_all</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_order.html">self.get_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_orders.html">self.get_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_asset_potential_total.html">self.get_asset_potential_total</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.create_order.html">self.create_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.submit_order.html">self.submit_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.submit_orders.html">self.submit_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.cancel_order.html">self.cancel_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.cancel_orders.html">self.cancel_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.cancel_open_orders.html">self.cancel_open_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_selling_order.html">self.get_selling_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.sell_all.html">self.sell_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_order.html">self.get_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_orders.html">self.get_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_asset_potential_total.html">self.get_asset_potential_total</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.account.html">Account Management</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of Account Management</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_portfolio_value.html">self.get_portfolio_value</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_cash.html">self.get_cash</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_position.html">self.get_position</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_positions.html">self.get_positions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_portfolio_value.html">self.get_portfolio_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_cash.html">self.get_cash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_position.html">self.get_position</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_positions.html">self.get_positions</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.data.html">Data</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of Data</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
@@ -210,102 +229,107 @@
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_historical_prices.html">self.get_historical_prices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_historical_prices_for_assets.html">self.get_historical_prices_for_assets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_quote.html">self.get_quote</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.start_realtime_bars.html">self.start_realtime_bars</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_realtime_bars.html">self.get_realtime_bars</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.cancel_realtime_bars.html">self.cancel_realtime_bars</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_yesterday_dividend.html">self.get_yesterday_dividend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_next_trading_day.html">self.get_next_trading_day</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.chart.html">Chart Functions</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of Chart Functions</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.add_marker.html">self.add_marker</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.add_line.html">self.add_line</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.get_markers_df.html">self.get_markers_df</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.get_lines_df.html">self.get_lines_df</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.add_marker.html">self.add_marker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.add_line.html">self.add_line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.get_markers_df.html">self.get_markers_df</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.get_lines_df.html">self.get_lines_df</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.parameters.html">Parameters</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of Parameters</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.set_parameters.html">self.set_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.set_parameters.html">self.set_parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.options.html">Options</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of Options</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_chain.html">self.get_chain</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_chains.html">self.get_chains</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_greeks.html">self.get_greeks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_strikes.html">self.get_strikes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_expiration.html">self.get_expiration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_multiplier.html">self.get_multiplier</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.options_expiry_to_datetime_date.html">self.options_expiry_to_datetime_date</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_next_trading_day.html">self.get_next_trading_day</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_chain.html">self.get_chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_chains.html">self.get_chains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_greeks.html">self.get_greeks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_strikes.html">self.get_strikes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_expiration.html">self.get_expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_multiplier.html">self.get_multiplier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.options_expiry_to_datetime_date.html">self.options_expiry_to_datetime_date</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_next_trading_day.html">self.get_next_trading_day</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.datetime.html">DateTime</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of DateTime</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_datetime.html">self.get_datetime</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_timestamp.html">self.get_timestamp</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_round_minute.html">self.get_round_minute</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_last_minute.html">self.get_last_minute</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_round_day.html">self.get_round_day</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_last_day.html">self.get_last_day</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_datetime_range.html">self.get_datetime_range</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.localize_datetime.html">self.localize_datetime</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.to_default_timezone.html">self.to_default_timezone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_datetime.html">self.get_datetime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_timestamp.html">self.get_timestamp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_round_minute.html">self.get_round_minute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_last_minute.html">self.get_last_minute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_round_day.html">self.get_round_day</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_last_day.html">self.get_last_day</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_datetime_range.html">self.get_datetime_range</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.localize_datetime.html">self.localize_datetime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.to_default_timezone.html">self.to_default_timezone</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="strategy_methods.misc.html">Miscellaneous</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of Miscellaneous</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.log_message.html">self.log_message</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.sleep.html">self.sleep</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.set_market.html">self.set_market</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.update_parameters.html">self.update_parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.await_market_to_close.html">self.await_market_to_close</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.await_market_to_open.html">self.await_market_to_open</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_order_registration.html">self.wait_for_order_registration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_order_execution.html">self.wait_for_order_execution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_orders_registration.html">self.wait_for_orders_registration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_orders_execution.html">self.wait_for_orders_execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.log_message.html">self.log_message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.sleep.html">self.sleep</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.set_market.html">self.set_market</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.update_parameters.html">self.update_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.await_market_to_close.html">self.await_market_to_close</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.await_market_to_open.html">self.await_market_to_open</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_order_registration.html">self.wait_for_order_registration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_order_execution.html">self.wait_for_order_execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_orders_registration.html">self.wait_for_orders_registration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_orders_execution.html">self.wait_for_orders_execution</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="strategy_properties.html">Strategy Properties</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of Strategy Properties</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.cash.html">self.cash</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.portfolio_value.html">self.portfolio_value</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.first_iteration.html">self.first_iteration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.is_backtesting.html">self.is_backtesting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.quote_asset.html">self.quote_asset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.name.html">self.name</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.initial_budget.html">self.initial_budget</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.minutes_before_closing.html">self.minutes_before_closing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.minutes_before_opening.html">self.minutes_before_opening</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.sleeptime.html">self.sleeptime</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.last_on_trading_iteration_datetime.html">self.last_on_trading_iteration_datetime</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.timezone.html">self.timezone</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.pytz.html">self.pytz</a></li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.unspent_money.html">self.unspent_money</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.cash.html">self.cash</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.portfolio_value.html">self.portfolio_value</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.first_iteration.html">self.first_iteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.is_backtesting.html">self.is_backtesting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.quote_asset.html">self.quote_asset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.name.html">self.name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.initial_budget.html">self.initial_budget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.minutes_before_closing.html">self.minutes_before_closing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.minutes_before_opening.html">self.minutes_before_opening</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.sleeptime.html">self.sleeptime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.last_on_trading_iteration_datetime.html">self.last_on_trading_iteration_datetime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.timezone.html">self.timezone</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.pytz.html">self.pytz</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.unspent_money.html">self.unspent_money</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="backtesting.html">Backtesting</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of Backtesting</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.all.html">All Backtesting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.yahoo.html">Yahoo</a></li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.pandas.html">Pandas (CSV or other data)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.polygon.html">Polygon.io Backtesting</a></li>
-</ul>
-</li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="brokers.html">Brokers</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of Brokers</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="brokers.alpaca.html">Alpaca</a></li>
-<li class="toctree-l2"><a class="reference internal" href="brokers.interactive_brokers.html">Interactive Brokers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="brokers.ccxt.html">Crypto Brokers (Using CCXT)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="brokers.tradier.html">Tradier</a></li>
-</ul>
-</li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="entities.html">Entities</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle navigation of Entities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="entities.html">Entities</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><div class="visually-hidden">Toggle navigation of Entities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="entities.asset.html">Asset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entities.bars.html">Bars</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entities.data.html">Data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entities.order.html">Order</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entities.position.html">Position</a></li>
 <li class="toctree-l2"><a class="reference internal" href="entities.trading_fee.html">Trading Fee</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="backtesting.html">Backtesting</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><div class="visually-hidden">Toggle navigation of Backtesting</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.how_to_backtest.html">How To Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.how_to_backtest.html#files-generated-from-backtesting">Files Generated from Backtesting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.backtesting_function.html">Backtesting Function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.yahoo.html">Yahoo</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.pandas.html">Pandas (CSV or other data)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.polygon.html">Polygon.io Backtesting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.thetadata.html">ThetaData Backtesting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.tearsheet_html.html">Tearsheet HTML</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.trades_files.html">Trades Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.indicators_files.html">Indicators Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.logs_csv.html">Logs CSV</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="brokers.html">Brokers</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><div class="visually-hidden">Toggle navigation of Brokers</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="brokers.alpaca.html">Alpaca</a></li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.interactive_brokers.html">Interactive Brokers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.interactive_brokers_legacy.html">Interactive Brokers Legacy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.ccxt.html">Crypto Brokers (Using CCXT)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.tradier.html">Tradier</a></li>
 </ul>
 </li>
 </ul>
@@ -440,14 +464,31 @@
         </div>
     </div>
 </div>
-<p>After you have installed Lumibot on your computer, you can then create a strategy and backtest it using free data available from Yahoo Finance, or use your own data (see the Backtesting section to get more details on this). Here’s some code to get you started:</p>
+<section id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">#</a></h2>
+<p>After you have installed Lumibot on your computer, you can create a strategy and backtest it using free data available from Yahoo Finance, or use your own data. Here’s how to get started:</p>
+<section id="step-1-install-lumibot">
+<h3>Step 1: Install Lumibot<a class="headerlink" href="#step-1-install-lumibot" title="Link to this heading">#</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Ensure you have installed the latest version of Lumibot</strong>. Upgrade using the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>lumibot<span class="w"> </span>--upgrade
+</pre></div>
+</div>
+</div>
+<p>Install the package on your computer:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>lumibot
+</pre></div>
+</div>
+</section>
+<section id="step-2-create-a-strategy-for-backtesting">
+<h3>Step 2: Create a Strategy for Backtesting<a class="headerlink" href="#step-2-create-a-strategy-for-backtesting" title="Link to this heading">#</a></h3>
+<p>Here’s some code to get you started:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-
 <span class="kn">from</span> <span class="nn">lumibot.backtesting</span> <span class="kn">import</span> <span class="n">YahooDataBacktesting</span>
 <span class="kn">from</span> <span class="nn">lumibot.strategies</span> <span class="kn">import</span> <span class="n">Strategy</span>
 
-
-<span class="c1"># A simple strategy that buys AAPL on the first day and hold it</span>
+<span class="c1"># A simple strategy that buys AAPL on the first day and holds it</span>
 <span class="k">class</span> <span class="nc">MyStrategy</span><span class="p">(</span><span class="n">Strategy</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">on_trading_iteration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_iteration</span><span class="p">:</span>
@@ -456,9 +497,7 @@
             <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_order</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="n">quantity</span><span class="p">,</span> <span class="s2">&quot;buy&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">submit_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
 
-
 <span class="c1"># Pick the dates that you want to start and end your backtest</span>
-<span class="c1"># and the allocated budget</span>
 <span class="n">backtesting_start</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2020</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 <span class="n">backtesting_end</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2020</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">)</span>
 
@@ -470,23 +509,21 @@
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Once you have backtested your strategy and found it to be profitable on historical data, you can then very easily take your bot live. Notice here how the strategy code is exactly the same, it only takes a few lines of code to switch from backtesting to live trading. Here’s an example using Alpaca (you can create a free Paper Trading account here in minutes: <a class="reference external" href="https://alpaca.markets/">https://alpaca.markets/</a>)</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lumibot.backtesting</span> <span class="kn">import</span> <span class="n">YahooDataBacktesting</span>
-<span class="kn">from</span> <span class="nn">lumibot.brokers</span> <span class="kn">import</span> <span class="n">Alpaca</span>
+</section>
+<section id="step-3-take-your-bot-live">
+<h3>Step 3: Take Your Bot Live<a class="headerlink" href="#step-3-take-your-bot-live" title="Link to this heading">#</a></h3>
+<p>Once you have backtested your strategy and found it to be profitable on historical data, you can take your bot live. Notice how the strategy code is exactly the same. Here’s an example using Alpaca (you can create a free Paper Trading account here in minutes: <a class="reference external" href="https://alpaca.markets/">https://alpaca.markets/</a>).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">lumibot.brokers</span> <span class="kn">import</span> <span class="n">Alpaca</span>
 <span class="kn">from</span> <span class="nn">lumibot.strategies.strategy</span> <span class="kn">import</span> <span class="n">Strategy</span>
 <span class="kn">from</span> <span class="nn">lumibot.traders</span> <span class="kn">import</span> <span class="n">Trader</span>
 
 <span class="n">ALPACA_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
-     <span class="c1"># Put your own Alpaca key here:</span>
      <span class="s2">&quot;API_KEY&quot;</span><span class="p">:</span> <span class="s2">&quot;YOUR_ALPACA_API_KEY&quot;</span><span class="p">,</span>
-     <span class="c1"># Put your own Alpaca secret here:</span>
      <span class="s2">&quot;API_SECRET&quot;</span><span class="p">:</span> <span class="s2">&quot;YOUR_ALPACA_SECRET&quot;</span><span class="p">,</span>
-     <span class="c1"># If you want to go live, you must change this. It is currently set for paper trading</span>
-     <span class="s2">&quot;ENDPOINT&quot;</span><span class="p">:</span> <span class="s2">&quot;https://paper-api.alpaca.markets&quot;</span>
+     <span class="s2">&quot;PAPER&quot;</span><span class="p">:</span> <span class="kc">True</span>  <span class="c1"># Set to True for paper trading, False for live trading</span>
  <span class="p">}</span>
 
-
-<span class="c1"># A simple strategy that buys AAPL on the first day and hold it</span>
+<span class="c1"># A simple strategy that buys AAPL on the first day and holds it</span>
 <span class="k">class</span> <span class="nc">MyStrategy</span><span class="p">(</span><span class="n">Strategy</span><span class="p">):</span>
    <span class="k">def</span> <span class="nf">on_trading_iteration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_iteration</span><span class="p">:</span>
@@ -494,7 +531,6 @@
             <span class="n">quantity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_value</span> <span class="o">//</span> <span class="n">aapl_price</span>
             <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_order</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="n">quantity</span><span class="p">,</span> <span class="s2">&quot;buy&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">submit_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
-
 
 <span class="n">trader</span> <span class="o">=</span> <span class="n">Trader</span><span class="p">()</span>
 <span class="n">broker</span> <span class="o">=</span> <span class="n">Alpaca</span><span class="p">(</span><span class="n">ALPACA_CONFIG</span><span class="p">)</span>
@@ -505,65 +541,175 @@
 <span class="n">trader</span><span class="o">.</span><span class="n">run_all</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>And that’s it! Easy-peasy.</p>
-<p>If you would like to learn how to modify your strategies we suggest that you first learn about Lifecycle Methods, then Strategy Methods and Strategy Properties. You can find the documentation for these in the menu, with the main pages describing what they are, then the sub-pages describing each method and property individually.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>Remember to start with a paper trading account</strong> to ensure everything works as expected before moving to live trading.</p>
+</div>
+</section>
+</section>
+<section id="all-together">
+<h2>All Together<a class="headerlink" href="#all-together" title="Link to this heading">#</a></h2>
+<p>Here’s the complete code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">lumibot.backtesting</span> <span class="kn">import</span> <span class="n">YahooDataBacktesting</span>
+<span class="kn">from</span> <span class="nn">lumibot.brokers</span> <span class="kn">import</span> <span class="n">Alpaca</span>
+<span class="kn">from</span> <span class="nn">lumibot.strategies</span> <span class="kn">import</span> <span class="n">Strategy</span>
+<span class="kn">from</span> <span class="nn">lumibot.traders</span> <span class="kn">import</span> <span class="n">Trader</span>
+
+<span class="n">ALPACA_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;API_KEY&quot;</span><span class="p">:</span> <span class="s2">&quot;YOUR_ALPACA_API_KEY&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;API_SECRET&quot;</span><span class="p">:</span> <span class="s2">&quot;YOUR_ALPACA_SECRET&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;PAPER&quot;</span><span class="p">:</span> <span class="kc">True</span>
+<span class="p">}</span>
+
+<span class="k">class</span> <span class="nc">MyStrategy</span><span class="p">(</span><span class="n">Strategy</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">on_trading_iteration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_iteration</span><span class="p">:</span>
+            <span class="n">aapl_price</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_price</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">)</span>
+            <span class="n">quantity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_value</span> <span class="o">//</span> <span class="n">aapl_price</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_order</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="n">quantity</span><span class="p">,</span> <span class="s2">&quot;buy&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">submit_order</span><span class="p">(</span><span class="n">order</span><span class="p">)</span>
+
+<span class="n">trader</span> <span class="o">=</span> <span class="n">Trader</span><span class="p">()</span>
+<span class="n">broker</span> <span class="o">=</span> <span class="n">Alpaca</span><span class="p">(</span><span class="n">ALPACA_CONFIG</span><span class="p">)</span>
+<span class="n">strategy</span> <span class="o">=</span> <span class="n">MyStrategy</span><span class="p">(</span><span class="n">broker</span><span class="o">=</span><span class="n">broker</span><span class="p">)</span>
+
+<span class="c1"># Run the strategy live</span>
+<span class="n">trader</span><span class="o">.</span><span class="n">add_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">)</span>
+<span class="n">trader</span><span class="o">.</span><span class="n">run_all</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Or you can download the file here: <a class="reference external" href="https://github.com/Lumiwealth/lumibot/blob/dev/lumibot/example_strategies/simple_start_single_file.py">https://github.com/Lumiwealth/lumibot/blob/dev/lumibot/example_strategies/simple_start_single_file.py</a></p>
+</section>
+<section id="additional-resources">
+<h2>Additional Resources<a class="headerlink" href="#additional-resources" title="Link to this heading">#</a></h2>
+<p>If you would like to learn how to modify your strategies, we suggest that you first learn about Lifecycle Methods, then Strategy Methods, and Strategy Properties. You can find the documentation for these in the menu, with the main pages describing what they are, then the sub-pages describing each method and property individually.</p>
 <p>We also have some more sample code that you can check out here: <a class="reference external" href="https://github.com/Lumiwealth/lumibot/tree/dev/lumibot/example_strategies">https://github.com/Lumiwealth/lumibot/tree/dev/lumibot/example_strategies</a></p>
-<p>We wish you good luck with your trading strategies, don’t forget us when you’re swimming in cash!</p>
+<p>We wish you good luck with your trading strategies. Don’t forget us when you’re swimming in cash!</p>
+</section>
 <section id="need-extra-help">
 <h2>Need Extra Help?<a class="headerlink" href="#need-extra-help" title="Link to this heading">#</a></h2>
 <div class="container course-list">
-    <div class="row gy-2">
+    <div class="row gy-4">
         <div class="col">
-            If you need some extra help building your stratgeies and making them profitable, then we also have courses that can help you out. We have taught thousands of students to create their own algorithms and have a library of profitable strategies that you get access to when you become a student.
+            <p>If you need extra help building your strategies and making them profitable, Lumiwealth has you covered. By visiting Lumiwealth, you not only learn how to use the Lumibot library but also gain access to a wealth of highly profitable algorithms.</p>
+            <p>Our strategies have shown exceptional results, with some achieving over 100% annual returns and others reaching up to 1,000% in backtesting. Join us to learn from our expertise and take your trading to the next level.</p>
         </div>
     </div>
-    <div class="row gy-2">
-        <div class="col d-grid">
-            <a href="https://lumiwealth.com/algorithmic-trading-landing-page" class="btn btn-primary btn-lg center course-button">
-                See Our Algorithmic Trading Course Here
+    <div class="row gy-4">
+        <div class="col text-center">
+            <a href="https://lumiwealth.com/?utm_source=documentation&utm_medium=referral&utm_campaign=lumibot_index" class="btn btn-primary btn-lg center course-button" target="_blank">
+                Visit Lumiwealth
             </a>
         </div>
     </div>
-    <div class="row gy-2">
+    <div class="row gy-4">
         <div class="col">
-            We also have a course that will teach you how to use Lumibot to Algorithmically trade Options, which can be very profitable but can be very difficult to learn. Our course makes this easy for you.
+            <h3>Why Choose Lumiwealth?</h3>
+            <p>By joining Lumiwealth, you'll learn to:</p>
+            <ul class="list-unstyled">
+                <li>✔️ Create and implement your own trading algorithms</li>
+                <li>✔️ Access a library of high-performing strategies</li>
+                <li>✔️ Learn from experts with proven track records</li>
+                <li>✔️ Achieve potentially high returns on your investments</li>
+            </ul>
         </div>
     </div>
-    <div class="row gy-2">
-        <div class="col d-grid">
-            <a href="https://www.lumiwealth.com/product-category/options-trading-purchase/" class="btn btn-primary btn-lg center course-button">
-                See Our Options Trading Course Here
-            </a>
-        </div>
-    </div>
-    <div class="row gy-2">
-        <div class="col">
-            Lastly, we also have a course that will teach you how to use Machine Learning (the backbone of Artificial Intelligence) to really make money. This can be difficult to learn, but it is very profitable when you get it working right.
-        </div>
-    </div>
-    <div class="row gy-2">
-        <div class="col d-grid">
-            <a href="https://www.lumiwealth.com/product-category/machine-learning-purchase/" class="btn btn-primary btn-lg center course-button">
-                See Our Machine Learning for Trading Course Here
+    <div class="row gy-4">
+        <div class="col text-center">
+            <a href="https://lumiwealth.com/?utm_source=documentation&utm_medium=referral&utm_campaign=lumibot" class="btn btn-primary btn-lg center course-button" target="_blank">
+                Discover More at Lumiwealth
             </a>
         </div>
     </div>
 </div>
+
+<style>
+    .course-list h3 {
+        color: inherit; /* Use the inherited text color */
+    }
+    .course-list p {
+        color: inherit; /* Use the inherited text color */
+    }
+    .course-button {
+        background: #007bff;
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        font-size: 1.2em;
+        text-decoration: none; /* Ensure the button looks consistent across browsers */
+        margin: 25px;
+        box-shadow: 5px 10px 18px #9b9b9b;
+    }
+    .course-button:hover {
+        background: #0056b3;
+        color: white;
+    }
+    .course-button:focus {
+        outline: none; /* Remove default outline on focus */
+        box-shadow: none; /* Remove shadow */
+    }
+    .course-button:active {
+        background: #004080; /* Slightly darker shade for active state */
+    }
+    .list-unstyled li {
+        margin-bottom: 10px;
+        font-size: 1.1em;
+    }
+    /* Dark mode styles */
+    @media (prefers-color-scheme: dark) {
+        .course-button {
+            box-shadow: 5px 10px 18px #2a2a2a; /* Darker shadow for dark mode */
+        }
+    }
+</style>
 </section>
 <section id="table-of-contents">
 <h2>Table of Contents<a class="headerlink" href="#table-of-contents" title="Link to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Home</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://github.com/Lumiwealth/lumibot">GitHUb</a></li>
-<li class="toctree-l1"><a class="reference external" href="https://discord.gg/v6asVjTCvh">Community/Forum</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html">What is Lumibot?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html#getting-started">Getting Started</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html#adding-trading-fees">Adding Trading Fees</a></li>
-<li class="toctree-l1"><a class="reference internal" href="getting_started.html#profiling-to-improve-performance">Profiling to Improve Performance</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting_started.html#viewing-the-results">Viewing the Results</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/Lumiwealth/lumibot">GitHub</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://discord.gg/v6asVjTCvh">Discord Community</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://lumiwealth.com/?utm_source=documentation&amp;utm_medium=referral&amp;utm_campaign=lumibot_sidebar">Get Pre-Built Profitable Strategies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html">Deployment Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#example-strategy-for-deployment">Example Strategy for Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#id1">Choosing Your Deployment Platform</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#id2">Deploying to Render</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#id3">Deploying to Replit</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html#secrets-configuration">Secrets Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html#broker-configuration">Broker Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#tradier-configuration">Tradier Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#alpaca-configuration">Alpaca Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#coinbase-configuration">Coinbase Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#kraken-configuration">Kraken Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#interactive-brokers-configuration">Interactive Brokers Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#interactive-brokers-legacy-configuration">Interactive Brokers-Legacy Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="deployment.html#general-environment-variables">General Environment Variables</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#final-steps">Final Steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deployment.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">What is Lumibot?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#id1">Lumiwealth</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#getting-started-with-lumibot">Getting Started With Lumibot</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-1-install-the-package">Step 1: Install the Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-2-import-the-following-modules">Step 2: Import the Following Modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-3-create-an-alpaca-paper-trading-account">Step 3: Create an Alpaca Paper Trading Account</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-4-configure-your-api-keys">Step 4: Configure Your API Keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-5-create-a-strategy-class">Step 5: Create a Strategy Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-6-instantiate-the-trader-alpaca-and-strategy-classes">Step 6: Instantiate the Trader, Alpaca, and Strategy Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-7-backtest-the-strategy-optional">Step 7: Backtest the Strategy (Optional)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#step-8-run-the-strategy">Step 8: Run the Strategy</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#adding-trading-fees">Adding Trading Fees</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#profiling-to-improve-performance">Profiling to Improve Performance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lifecycle_methods.html">Lifecycle Methods</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="lifecycle_methods.summary.html">Summary</a></li>
 <li class="toctree-l2"><a class="reference internal" href="lifecycle_methods.initialize.html">def initialize</a><ul>
@@ -624,26 +770,34 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="vars.html">Variable Backup &amp; Restore</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vars.html#how-it-works">How It Works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vars.html#benefits-of-self-vars">Benefits of <cite>self.vars</cite></a></li>
+<li class="toctree-l2"><a class="reference internal" href="vars.html#usage-guide">Usage Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vars.html#database-configuration">Database Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vars.html#database-storage-structure">Database Storage Structure</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="strategy_methods.html">Strategy Methods</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.orders.html">Order Management</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.create_order.html">self.create_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.submit_order.html">self.submit_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.submit_orders.html">self.submit_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.cancel_order.html">self.cancel_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.cancel_orders.html">self.cancel_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.cancel_open_orders.html">self.cancel_open_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_selling_order.html">self.get_selling_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.sell_all.html">self.sell_all</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_order.html">self.get_order</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_orders.html">self.get_orders</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/strategies.strategy.Strategy.get_asset_potential_total.html">self.get_asset_potential_total</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.create_order.html">self.create_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.submit_order.html">self.submit_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.submit_orders.html">self.submit_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.cancel_order.html">self.cancel_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.cancel_orders.html">self.cancel_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.cancel_open_orders.html">self.cancel_open_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_selling_order.html">self.get_selling_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.sell_all.html">self.sell_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_order.html">self.get_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_orders.html">self.get_orders</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.orders/lumibot.strategies.strategy.Strategy.get_asset_potential_total.html">self.get_asset_potential_total</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.account.html">Account Management</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_portfolio_value.html">self.get_portfolio_value</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_cash.html">self.get_cash</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_position.html">self.get_position</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_positions.html">self.get_positions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_portfolio_value.html">self.get_portfolio_value</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_cash.html">self.get_cash</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_position.html">self.get_position</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_positions.html">self.get_positions</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.data.html">Data</a><ul>
@@ -652,153 +806,116 @@
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_historical_prices.html">self.get_historical_prices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_historical_prices_for_assets.html">self.get_historical_prices_for_assets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_quote.html">self.get_quote</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.start_realtime_bars.html">self.start_realtime_bars</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_realtime_bars.html">self.get_realtime_bars</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.cancel_realtime_bars.html">self.cancel_realtime_bars</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_yesterday_dividend.html">self.get_yesterday_dividend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="strategy_methods.data/lumibot.strategies.strategy.Strategy.get_next_trading_day.html">self.get_next_trading_day</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.chart.html">Chart Functions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.add_marker.html">self.add_marker</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.add_line.html">self.add_line</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.get_markers_df.html">self.get_markers_df</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/strategies.strategy.Strategy.get_lines_df.html">self.get_lines_df</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.add_marker.html">self.add_marker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.add_line.html">self.add_line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.get_markers_df.html">self.get_markers_df</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.chart/lumibot.strategies.strategy.Strategy.get_lines_df.html">self.get_lines_df</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.parameters.html">Parameters</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/strategies.strategy.Strategy.set_parameters.html">self.set_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.account/lumibot.strategies.strategy.Strategy.set_parameters.html">self.set_parameters</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.options.html">Options</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_chain.html">self.get_chain</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_chains.html">self.get_chains</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_greeks.html">self.get_greeks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_strikes.html">self.get_strikes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_expiration.html">self.get_expiration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_multiplier.html">self.get_multiplier</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.options_expiry_to_datetime_date.html">self.options_expiry_to_datetime_date</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/strategies.strategy.Strategy.get_next_trading_day.html">self.get_next_trading_day</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_chain.html">self.get_chain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_chains.html">self.get_chains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_greeks.html">self.get_greeks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_strikes.html">self.get_strikes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_expiration.html">self.get_expiration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_multiplier.html">self.get_multiplier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.options_expiry_to_datetime_date.html">self.options_expiry_to_datetime_date</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.options/lumibot.strategies.strategy.Strategy.get_next_trading_day.html">self.get_next_trading_day</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.datetime.html">DateTime</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_datetime.html">self.get_datetime</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_timestamp.html">self.get_timestamp</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_round_minute.html">self.get_round_minute</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_last_minute.html">self.get_last_minute</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_round_day.html">self.get_round_day</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_last_day.html">self.get_last_day</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.get_datetime_range.html">self.get_datetime_range</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.localize_datetime.html">self.localize_datetime</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/strategies.strategy.Strategy.to_default_timezone.html">self.to_default_timezone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_datetime.html">self.get_datetime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_timestamp.html">self.get_timestamp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_round_minute.html">self.get_round_minute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_last_minute.html">self.get_last_minute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_round_day.html">self.get_round_day</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_last_day.html">self.get_last_day</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.get_datetime_range.html">self.get_datetime_range</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.localize_datetime.html">self.localize_datetime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.datetime/lumibot.strategies.strategy.Strategy.to_default_timezone.html">self.to_default_timezone</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="strategy_methods.misc.html">Miscellaneous</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.log_message.html">self.log_message</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.sleep.html">self.sleep</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.set_market.html">self.set_market</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.update_parameters.html">self.update_parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.await_market_to_close.html">self.await_market_to_close</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.await_market_to_open.html">self.await_market_to_open</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_order_registration.html">self.wait_for_order_registration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_order_execution.html">self.wait_for_order_execution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_orders_registration.html">self.wait_for_orders_registration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/strategies.strategy.Strategy.wait_for_orders_execution.html">self.wait_for_orders_execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.log_message.html">self.log_message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.sleep.html">self.sleep</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.set_market.html">self.set_market</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.update_parameters.html">self.update_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.get_parameters.html">self.get_parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.await_market_to_close.html">self.await_market_to_close</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.await_market_to_open.html">self.await_market_to_open</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_order_registration.html">self.wait_for_order_registration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_order_execution.html">self.wait_for_order_execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_orders_registration.html">self.wait_for_orders_registration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="strategy_methods.misc/lumibot.strategies.strategy.Strategy.wait_for_orders_execution.html">self.wait_for_orders_execution</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="strategy_properties.html">Strategy Properties</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.cash.html">self.cash</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.cash.html#strategies.strategy.Strategy.cash"><code class="docutils literal notranslate"><span class="pre">Strategy.cash</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.cash.html">self.cash</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.cash.html#lumibot.strategies.strategy.Strategy.cash"><code class="docutils literal notranslate"><span class="pre">Strategy.cash</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.portfolio_value.html">self.portfolio_value</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.portfolio_value.html#strategies.strategy.Strategy.portfolio_value"><code class="docutils literal notranslate"><span class="pre">Strategy.portfolio_value</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.portfolio_value.html">self.portfolio_value</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.portfolio_value.html#lumibot.strategies.strategy.Strategy.portfolio_value"><code class="docutils literal notranslate"><span class="pre">Strategy.portfolio_value</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.first_iteration.html">self.first_iteration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.first_iteration.html#strategies.strategy.Strategy.first_iteration"><code class="docutils literal notranslate"><span class="pre">Strategy.first_iteration</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.first_iteration.html">self.first_iteration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.first_iteration.html#lumibot.strategies.strategy.Strategy.first_iteration"><code class="docutils literal notranslate"><span class="pre">Strategy.first_iteration</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.is_backtesting.html">self.is_backtesting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.is_backtesting.html#strategies.strategy.Strategy.is_backtesting"><code class="docutils literal notranslate"><span class="pre">Strategy.is_backtesting</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.is_backtesting.html">self.is_backtesting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.is_backtesting.html#lumibot.strategies.strategy.Strategy.is_backtesting"><code class="docutils literal notranslate"><span class="pre">Strategy.is_backtesting</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.quote_asset.html">self.quote_asset</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.quote_asset.html#strategies.strategy.Strategy.quote_asset"><code class="docutils literal notranslate"><span class="pre">Strategy.quote_asset</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.quote_asset.html">self.quote_asset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.quote_asset.html#lumibot.strategies.strategy.Strategy.quote_asset"><code class="docutils literal notranslate"><span class="pre">Strategy.quote_asset</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.name.html">self.name</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.name.html#strategies.strategy.Strategy.name"><code class="docutils literal notranslate"><span class="pre">Strategy.name</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.name.html">self.name</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.name.html#lumibot.strategies.strategy.Strategy.name"><code class="docutils literal notranslate"><span class="pre">Strategy.name</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.initial_budget.html">self.initial_budget</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.initial_budget.html#strategies.strategy.Strategy.initial_budget"><code class="docutils literal notranslate"><span class="pre">Strategy.initial_budget</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.initial_budget.html">self.initial_budget</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.initial_budget.html#lumibot.strategies.strategy.Strategy.initial_budget"><code class="docutils literal notranslate"><span class="pre">Strategy.initial_budget</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.minutes_before_closing.html">self.minutes_before_closing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.minutes_before_closing.html#strategies.strategy.Strategy.minutes_before_closing"><code class="docutils literal notranslate"><span class="pre">Strategy.minutes_before_closing</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.minutes_before_closing.html">self.minutes_before_closing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.minutes_before_closing.html#lumibot.strategies.strategy.Strategy.minutes_before_closing"><code class="docutils literal notranslate"><span class="pre">Strategy.minutes_before_closing</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.minutes_before_opening.html">self.minutes_before_opening</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.minutes_before_opening.html#strategies.strategy.Strategy.minutes_before_opening"><code class="docutils literal notranslate"><span class="pre">Strategy.minutes_before_opening</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.minutes_before_opening.html">self.minutes_before_opening</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.minutes_before_opening.html#lumibot.strategies.strategy.Strategy.minutes_before_opening"><code class="docutils literal notranslate"><span class="pre">Strategy.minutes_before_opening</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.sleeptime.html">self.sleeptime</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.sleeptime.html#strategies.strategy.Strategy.sleeptime"><code class="docutils literal notranslate"><span class="pre">Strategy.sleeptime</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.sleeptime.html">self.sleeptime</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.sleeptime.html#lumibot.strategies.strategy.Strategy.sleeptime"><code class="docutils literal notranslate"><span class="pre">Strategy.sleeptime</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.last_on_trading_iteration_datetime.html">self.last_on_trading_iteration_datetime</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.last_on_trading_iteration_datetime.html#strategies.strategy.Strategy.last_on_trading_iteration_datetime"><code class="docutils literal notranslate"><span class="pre">Strategy.last_on_trading_iteration_datetime</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.last_on_trading_iteration_datetime.html">self.last_on_trading_iteration_datetime</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.last_on_trading_iteration_datetime.html#lumibot.strategies.strategy.Strategy.last_on_trading_iteration_datetime"><code class="docutils literal notranslate"><span class="pre">Strategy.last_on_trading_iteration_datetime</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.timezone.html">self.timezone</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.timezone.html#strategies.strategy.Strategy.timezone"><code class="docutils literal notranslate"><span class="pre">Strategy.timezone</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.timezone.html">self.timezone</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.timezone.html#lumibot.strategies.strategy.Strategy.timezone"><code class="docutils literal notranslate"><span class="pre">Strategy.timezone</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.pytz.html">self.pytz</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.pytz.html#strategies.strategy.Strategy.pytz"><code class="docutils literal notranslate"><span class="pre">Strategy.pytz</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.pytz.html">self.pytz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.pytz.html#lumibot.strategies.strategy.Strategy.pytz"><code class="docutils literal notranslate"><span class="pre">Strategy.pytz</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.unspent_money.html">self.unspent_money</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="strategy_properties/strategies.strategy.Strategy.unspent_money.html#strategies.strategy.Strategy.unspent_money"><code class="docutils literal notranslate"><span class="pre">Strategy.unspent_money</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="backtesting.html">Backtesting</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.all.html">All Backtesting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="backtesting.all.html#strategies.strategy.Strategy.backtest"><code class="docutils literal notranslate"><span class="pre">backtest()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.yahoo.html">Yahoo</a></li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.pandas.html">Pandas (CSV or other data)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="backtesting.pandas.html#in-summary">In Summary</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="backtesting.polygon.html">Polygon.io Backtesting</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="brokers.html">Brokers</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="brokers.alpaca.html">Alpaca</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="brokers.alpaca.html#module-lumibot.brokers.alpaca">Documentation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="brokers.interactive_brokers.html">Interactive Brokers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="brokers.ccxt.html">Crypto Brokers (Using CCXT)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="brokers.ccxt.html#configuration-settings">Configuration Settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="brokers.ccxt.html#running-your-strategy">Running Your Strategy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="brokers.ccxt.html#full-example-strategy">Full Example Strategy</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="brokers.tradier.html">Tradier</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#getting-started">Getting Started</a></li>
-<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#configuration">Configuration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#running-your-strategy">Running Your Strategy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#full-example-strategy">Full Example Strategy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.unspent_money.html">self.unspent_money</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="strategy_properties/lumibot.strategies.strategy.Strategy.unspent_money.html#lumibot.strategies.strategy.Strategy.unspent_money"><code class="docutils literal notranslate"><span class="pre">Strategy.unspent_money</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -832,6 +949,53 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="backtesting.html">Backtesting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="backtesting.html#files-generated-from-backtesting">Files Generated from Backtesting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.how_to_backtest.html">How To Backtest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.how_to_backtest.html#files-generated-from-backtesting">Files Generated from Backtesting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.backtesting_function.html">Backtesting Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.yahoo.html">Yahoo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.pandas.html">Pandas (CSV or other data)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.polygon.html">Polygon.io Backtesting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.thetadata.html">ThetaData Backtesting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.tearsheet_html.html">Tearsheet HTML</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.trades_files.html">Trades Files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.indicators_files.html">Indicators Files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backtesting.logs_csv.html">Logs CSV</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="brokers.html">Brokers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="brokers.alpaca.html">Alpaca</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="brokers.alpaca.html#module-lumibot.brokers.alpaca">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.interactive_brokers.html">Interactive Brokers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="brokers.interactive_brokers.html#market-data-subscriptions">Market Data Subscriptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.interactive_brokers.html#two-factor-authentication-2fa">Two-Factor Authentication (2FA)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.interactive_brokers.html#using-a-secondary-username">Using a Secondary Username</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.interactive_brokers.html#using-a-paper-trading-account">Using a Paper Trading Account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.interactive_brokers.html#strategy-setup">Strategy Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.interactive_brokers.html#example-strategy">Example Strategy</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.interactive_brokers_legacy.html">Interactive Brokers Legacy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.ccxt.html">Crypto Brokers (Using CCXT)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="brokers.ccxt.html#configuration-settings">Configuration Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.ccxt.html#running-your-strategy">Running Your Strategy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.ccxt.html#full-example-strategy">Full Example Strategy</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="brokers.tradier.html">Tradier</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#getting-started">Getting Started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#running-your-strategy">Running Your Strategy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="brokers.tradier.html#full-example-strategy">Full Example Strategy</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
@@ -850,12 +1014,12 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="getting_started.html">
+          <a class="next-page" href="deployment.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">What is Lumibot?</div>
+                <div class="title">Deployment Guide</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -891,6 +1055,14 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Lumibot: Backtesting and Algorithmic Trading Library</a><ul>
+<li><a class="reference internal" href="#getting-started">Getting Started</a><ul>
+<li><a class="reference internal" href="#step-1-install-lumibot">Step 1: Install Lumibot</a></li>
+<li><a class="reference internal" href="#step-2-create-a-strategy-for-backtesting">Step 2: Create a Strategy for Backtesting</a></li>
+<li><a class="reference internal" href="#step-3-take-your-bot-live">Step 3: Take Your Bot Live</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#all-together">All Together</a></li>
+<li><a class="reference internal" href="#additional-resources">Additional Resources</a></li>
 <li><a class="reference internal" href="#need-extra-help">Need Extra Help?</a></li>
 <li><a class="reference internal" href="#table-of-contents">Table of Contents</a></li>
 </ul>

@@ -17,7 +17,7 @@ class Ccxt(Broker):
     def __init__(self, config, data_source: CcxtData = None, max_workers=20, chunk_size=100, **kwargs):
         if data_source is None:
             data_source = CcxtData(config, max_workers=max_workers, chunk_size=chunk_size)
-        super().__init__(self, config=config, data_source=data_source, max_workers=max_workers, **kwargs)
+        super().__init__(name="ccxt", config=config, data_source=data_source, max_workers=max_workers, **kwargs)
 
         self.market = "24/7"
         self.fetch_open_orders_last_request_time = None
@@ -75,7 +75,7 @@ class Ccxt(Broker):
         return self.api.fetch_balance(params)
 
     # =========Positions functions==================
-    def _get_balances_at_broker(self, quote_asset):
+    def _get_balances_at_broker(self, quote_asset, strategy):
         """Get's the current actual cash, positions value, and total
         liquidation value from ccxt.
 
@@ -182,10 +182,10 @@ class Ccxt(Broker):
                 f"Please check the symbol and the exchange currencies list."
             )
             precision = None
-        
+
         elif self.api.exchangeId == "binance":
             precision = str(10 ** -self.api.currencies[symbol]["precision"])
-            
+
         else:
             precision = str(self.api.currencies[symbol]["precision"])
 
@@ -253,7 +253,7 @@ class Ccxt(Broker):
             # Check if the position is not None
             if new_pos is not None:
                 result.append(new_pos)
-                
+
         return result
 
     def _pull_positions(self, strategy):
@@ -299,7 +299,7 @@ class Ccxt(Broker):
             response["side"],
             limit_price=response["price"],
             stop_price=response["stopPrice"],
-            time_in_force=response["timeInForce"].lower(),
+            time_in_force=response["timeInForce"].lower() if response["timeInForce"] else None,
             quote=Asset(
                 symbol=pair[1],
                 asset_type="crypto",
@@ -324,7 +324,10 @@ class Ccxt(Broker):
     def _pull_broker_closed_orders(self):
         params = {}
 
-        if self.is_margin_enabled():
+        if self.api.id == "kraken":  # Check if the exchange is Kraken
+            logging.info("Detected Kraken exchange. Not sending params for closed orders.")
+            params = None  # Ensure no parameters are sent
+        elif self.is_margin_enabled():
             params["tradeType"] = "MARGIN_TRADE"
 
         closed_orders = self.api.fetch_closed_orders(params)
@@ -482,7 +485,8 @@ class Ccxt(Broker):
             "stop_price",
         ]:
             if hasattr(order, price_type) and getattr(order, price_type) is not None:
-                precision_price = Decimal(str(10 ** -precision["price"])) if self.api.exchangeId == "binance" else precision["price"]
+                precision_price = Decimal(str(10 ** -precision["price"])
+                                          ) if self.api.exchangeId == "binance" else precision["price"]
                 setattr(
                     order,
                     price_type,

@@ -268,8 +268,8 @@ class Data:
             )
         return df
 
-    # ./lumibot/build/__editable__.lumibot-3.1.14-py3-none-any/lumibot/entities/data.py:280: 
-    # FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. 
+    # ./lumibot/build/__editable__.lumibot-3.1.14-py3-none-any/lumibot/entities/data.py:280:
+    # FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version.
     # Call result.infer_objects(copy=False) instead.
     # To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
 
@@ -402,7 +402,60 @@ class Data:
         float
         """
         iter_count = self.get_iter_count(dt)
-        return self.datalines["open"].dataline[iter_count]
+        open_price = self.datalines["open"].dataline[iter_count]
+        close_price = self.datalines["close"].dataline[iter_count]
+        price = close_price if dt > self.datalines["datetime"].dataline[iter_count] else open_price
+        return price
+
+    @check_data
+    def get_quote(self, dt, length=1, timeshift=0):
+        """Returns the last known price of the data.
+
+        Parameters
+        ----------
+        dt : datetime.datetime
+            The datetime to get the last price.
+        length : int
+            The number of periods to get the last price.
+        timestep : str
+            The frequency of the data to get the last price.
+        timeshift : int
+            The number of periods to shift the data.
+
+        Returns
+        -------
+        dict
+        """
+        iter_count = self.get_iter_count(dt)
+        open = round(self.datalines["open"].dataline[iter_count], 2)
+        high = round(self.datalines["high"].dataline[iter_count], 2)
+        low = round(self.datalines["low"].dataline[iter_count], 2)
+        close = round(self.datalines["close"].dataline[iter_count], 2)
+        bid = round(self.datalines["bid"].dataline[iter_count], 2)
+        ask = round(self.datalines["ask"].dataline[iter_count], 2)
+        volume = round(self.datalines["volume"].dataline[iter_count], 0)
+        bid_size = round(self.datalines["bid_size"].dataline[iter_count], 0)
+        bid_condition = round(self.datalines["bid_condition"].dataline[iter_count], 0)
+        bid_exchange = round(self.datalines["bid_exchange"].dataline[iter_count], 0)
+        ask_size = round(self.datalines["ask_size"].dataline[iter_count], 0)
+        ask_condition = round(self.datalines["ask_condition"].dataline[iter_count], 0)
+        ask_exchange = round(self.datalines["ask_exchange"].dataline[iter_count], 0)
+
+        return {
+            "open": open,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": volume,
+            "bid": bid,
+            "ask": ask,
+            "bid_size": bid_size,
+            "bid_condition": bid_condition,
+            "bid_exchange": bid_exchange,
+            "ask_size": ask_size,
+            "ask_condition": ask_condition,
+            "ask_exchange": ask_exchange
+        }
 
     @check_data
     def _get_bars_dict(self, dt, length=1, timestep=None, timeshift=0):
@@ -517,6 +570,10 @@ class Data:
             unit = "D"
             data = self._get_bars_dict(dt, length=length, timestep="minute", timeshift=timeshift)
 
+        elif timestep == 'day' and self.timestep == 'day':
+            unit = "D"
+            data = self._get_bars_dict(dt, length=length, timestep=timestep, timeshift=timeshift)
+
         else:
             unit = "min"  # Guaranteed to be minute timestep at this point
             length = length * quantity
@@ -526,18 +583,20 @@ class Data:
             return None
 
         df = pd.DataFrame(data).assign(datetime=lambda df: pd.to_datetime(df['datetime'])).set_index('datetime')
+        if "dividend" in df.columns:
+            agg_column_map["dividend"] = "sum"
         df_result = df.resample(f"{quantity}{unit}").agg(agg_column_map)
 
         # Drop any rows that have NaN values (this can happen if the data is not complete, eg. weekends)
         df_result = df_result.dropna()
 
         # Remove partial day data from the current day, which can happen if the data is in minute timestep.
-        if timestep == "day":
+        if timestep == "day" and self.timestep == "minute":
             df_result = df_result[df_result.index < dt.replace(hour=0, minute=0, second=0, microsecond=0)]
 
         # The original df_result may include more rows when timestep is day and self.timestep is minute.
         # In this case, we only want to return the last n rows.
-        df_result = df_result.tail(n=num_periods)
+        df_result = df_result.tail(n=int(num_periods))
 
         return df_result
 

@@ -125,16 +125,12 @@ class Momentum(Strategy):
         Gets the momentums (the percentage return) for all the assets we are tracking,
         over the time period set in self.period
         """
-
         momentums = []
-        start_date = self.get_round_day(timeshift=self.period + 1)
-        end_date = self.get_round_day(timeshift=1)
         data = self.get_bars(self.symbols, self.period + 2, timestep="day")
         for asset, bars_set in data.items():
             # Get the return for symbol over self.period days
-            # (from start_date to end_date)
             symbol = asset.symbol
-            symbol_momentum = bars_set.get_momentum(start=start_date, end=end_date)
+            symbol_momentum = bars_set.get_momentum(num_periods=self.period)
             self.log_message(
                 "%s has a return value of %.2f%% over the last %d day(s)."
                 % (symbol, 100 * symbol_momentum, self.period)
@@ -155,19 +151,13 @@ if __name__ == "__main__":
     is_live = False
 
     if is_live:
-        from credentials import ALPACA_CONFIG
-
+        from lumibot.credentials import ALPACA_CONFIG
         from lumibot.brokers import Alpaca
-        from lumibot.traders import Trader
-
-        trader = Trader()
 
         broker = Alpaca(ALPACA_CONFIG)
 
         strategy = Momentum(broker=broker)
-
-        trader.add_strategy(strategy)
-        strategy_executors = trader.run_all()
+        strategy.run_live()
 
     else:
         from lumibot.backtesting import YahooDataBacktesting
