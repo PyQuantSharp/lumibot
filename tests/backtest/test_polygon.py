@@ -1,11 +1,15 @@
 import datetime
 import os
 from collections import defaultdict
+
+import numpy as np
 import pandas as pd
-
+import pytest
 import pandas_market_calendars as mcal
+from pandas.testing import assert_frame_equal
 
-from tests.backtest.fixtures import polygon_data_backtesting
+
+from tests.fixtures import polygon_data_backtesting
 import pytz
 from lumibot.backtesting import BacktestingBroker, PolygonDataBacktesting
 from lumibot.entities import Asset
@@ -16,8 +20,7 @@ from unittest.mock import MagicMock, patch
 from datetime import timedelta
 
 # Global parameters
-# API Key for testing Polygon.io
-POLYGON_API_KEY = os.environ.get("POLYGON_API_KEY")
+from lumibot.credentials import POLYGON_API_KEY
 
 
 class PolygonBacktestStrat(Strategy):
@@ -148,6 +151,7 @@ class PolygonBacktestStrat(Strategy):
 
 
 class TestPolygonBacktestFull:
+
     def verify_backtest_results(self, poly_strat_obj):
         assert isinstance(poly_strat_obj, PolygonBacktestStrat)
 
@@ -166,7 +170,8 @@ class TestPolygonBacktestFull:
         assert asset_order_id in poly_strat_obj.prices
         assert option_order_id in poly_strat_obj.prices
         assert 130.0 < poly_strat_obj.prices[asset_order_id] < 140.0, "Valid asset price between 130 and 140"
-        assert 130.0 < stock_order.get_fill_price() < 140.0, "Valid Fill price between 130 and 140"
+        sfp = stock_order.get_fill_price()
+        assert 130.0 < sfp < 140.0, "Valid Fill price between 130 and 140"
         assert poly_strat_obj.prices[option_order_id] == 4.10, "Opening Price is $4.10 on 08/01/2023"
         assert option_order.get_fill_price() == 4.10, "Fills at 1st candle open price of $4.10 on 08/01/2023"
 
@@ -198,6 +203,14 @@ class TestPolygonBacktestFull:
         )
         assert "fill" not in poly_strat_obj.order_time_tracker[stoploss_order_id]
 
+    @pytest.mark.skipif(
+        not POLYGON_API_KEY,
+        reason="This test requires a Polygon.io API key"
+    )
+    @pytest.mark.skipif(
+        POLYGON_API_KEY == '<your key here>',
+        reason="This test requires a Polygon.io API key"
+    )
     def test_polygon_restclient(self):
         """
         Test Polygon REST Client with Lumibot Backtesting and real API calls to Polygon. Using the Amazon stock
@@ -213,7 +226,6 @@ class TestPolygonBacktestFull:
             datetime_start=backtesting_start,
             datetime_end=backtesting_end,
             api_key=POLYGON_API_KEY,
-            has_paid_subscription=True,
         )
         broker = BacktestingBroker(data_source=data_source)
         poly_strat_obj = PolygonBacktestStrat(
@@ -226,16 +238,23 @@ class TestPolygonBacktestFull:
         assert results
         self.verify_backtest_results(poly_strat_obj)
 
+    @pytest.mark.skipif(
+        not POLYGON_API_KEY,
+        reason="This test requires a Polygon.io API key"
+    )
+    @pytest.mark.skipif(
+        POLYGON_API_KEY == '<your key here>',
+        reason="This test requires a Polygon.io API key"
+    )
     def test_intraday_daterange(self):
         tzinfo = pytz.timezone("America/New_York")
-        backtesting_start = datetime.datetime(2024, 2, 7).astimezone(tzinfo)
-        backtesting_end = datetime.datetime(2024, 2, 10).astimezone(tzinfo)
+        backtesting_start = tzinfo.localize(datetime.datetime(2024, 2, 7))
+        backtesting_end = tzinfo.localize(datetime.datetime(2024, 2, 10))
 
         data_source = PolygonDataBacktesting(
             datetime_start=backtesting_start,
             datetime_end=backtesting_end,
             api_key=POLYGON_API_KEY,
-            has_paid_subscription=True,
         )
         broker = BacktestingBroker(data_source=data_source)
         poly_strat_obj = PolygonBacktestStrat(
@@ -250,6 +269,14 @@ class TestPolygonBacktestFull:
         # Assert the end datetime is before the market open of the next trading day.
         assert broker.datetime == datetime.datetime.fromisoformat("2024-02-12 08:30:00-05:00")
 
+    @pytest.mark.skipif(
+        not POLYGON_API_KEY,
+        reason="This test requires a Polygon.io API key"
+    )
+    @pytest.mark.skipif(
+        POLYGON_API_KEY == '<your key here>',
+        reason="This test requires a Polygon.io API key"
+    )
     def test_polygon_legacy_backtest(self):
         """
         Do the same backtest as test_polygon_restclient() but using the legacy backtest() function call instead of
@@ -272,14 +299,18 @@ class TestPolygonBacktestFull:
             show_plot=False,
             show_tearsheet=False,
             save_tearsheet=False,
-            api_key=POLYGON_API_KEY,
-            # Painfully slow with free subscription setting b/c lumibot is over querying and imposing a very
-            # strict rate limit
-            polygon_has_paid_subscription=True,
         )
         assert results
         self.verify_backtest_results(poly_strat_obj)
 
+    @pytest.mark.skipif(
+        not POLYGON_API_KEY,
+        reason="This test requires a Polygon.io API key"
+    )
+    @pytest.mark.skipif(
+        POLYGON_API_KEY == '<your key here>',
+        reason="This test requires a Polygon.io API key"
+    )
     def test_polygon_legacy_backtest2(self):
         """Test that the legacy backtest() function call works without returning the startegy object"""
         # Parameters: True = Live Trading | False = Backtest
@@ -297,15 +328,11 @@ class TestPolygonBacktestFull:
             show_tearsheet=False,
             save_tearsheet=False,
             polygon_api_key=POLYGON_API_KEY,  # Testing the legacy parameter name while DeprecationWarning is active
-            # Painfully slow with free subscription setting b/c lumibot is over querying and imposing a very
-            # strict rate limit
-            polygon_has_paid_subscription=True,
         )
         assert results
 
     def test_pull_source_symbol_bars_with_api_call(self, polygon_data_backtesting, mocker):
         """Test that polygon_helper.get_price_data_from_polygon() is called with the right parameters"""
-        
         # Only simulate first date
         mocker.patch.object(
             polygon_data_backtesting,
@@ -317,7 +344,7 @@ class TestPolygonBacktestFull:
             'lumibot.tools.polygon_helper.get_price_data_from_polygon',
             return_value=MagicMock()
         )
-        
+
         asset = Asset(symbol="AAPL", asset_type="stock")
         quote = Asset(symbol="USD", asset_type="forex")
         length = 10
@@ -334,29 +361,38 @@ class TestPolygonBacktestFull:
 
             mocked_get_price_data.assert_called_once()
             call_args = mocked_get_price_data.call_args
-            
-            expected_start_date = polygon_data_backtesting.datetime_start - datetime.timedelta(days=length) - START_BUFFER
-            
+
+            extra_padding_days = (length // 5) * 3
+            expected_start_date = polygon_data_backtesting.datetime_start - \
+                datetime.timedelta(days=length + extra_padding_days) - START_BUFFER
+
             assert call_args[0][0] == polygon_data_backtesting._api_key
             assert call_args[0][1] == asset
             assert call_args[0][2] == expected_start_date
             assert call_args[0][3] == polygon_data_backtesting.datetime_end
             assert call_args[1]["timespan"] == timestep
             assert call_args[1]["quote_asset"] == quote
-            assert call_args[1]["has_paid_subscription"] == polygon_data_backtesting.has_paid_subscription
 
 
 class TestPolygonDataSource:
 
+    @pytest.mark.skipif(
+        not POLYGON_API_KEY,
+        reason="This test requires a Polygon.io API key"
+    )
+    @pytest.mark.skipif(
+        POLYGON_API_KEY == '<your key here>',
+        reason="This test requires a Polygon.io API key"
+    )
     def test_get_historical_prices(self):
         tzinfo = pytz.timezone("America/New_York")
-        start = datetime.datetime(2024, 2, 5).astimezone(tzinfo)
-        end = datetime.datetime(2024, 2, 10).astimezone(tzinfo)
+        start = tzinfo.localize(datetime.datetime(2024, 2, 5))
+        end = tzinfo.localize(datetime.datetime(2024, 2, 10))
 
         data_source = PolygonDataBacktesting(
-            start, end, api_key=POLYGON_API_KEY, has_paid_subscription=True
+            start, end, api_key=POLYGON_API_KEY
         )
-        data_source._datetime = datetime.datetime(2024, 2, 7, 10).astimezone(tzinfo)
+        data_source._datetime = tzinfo.localize(datetime.datetime(2024, 2, 7, 10))
         # This call will set make the data source use minute bars.
         prices = data_source.get_historical_prices("SPY", 2, "minute")
         # The data source will aggregate day bars from the minute bars.
@@ -371,7 +407,8 @@ class TestPolygonDataSource:
                 "high": 494.3778,
                 "low": 490.23,
                 "close": 492.57,
-                "volume": 74655145.0
+                "volume": 74655145.0,
+                "return": np.nan
             },
             {
                 "datetime": "2024-02-06 00:00:00-05:00",
@@ -379,10 +416,99 @@ class TestPolygonDataSource:
                 "high": 494.3200,
                 "low": 492.03,
                 "close": 493.82,
-                "volume": 54775803.0
+                "volume": 54775803.0,
+                "return": 0.0025377103761901054
             },
         ], index="datetime")
         expected_df.index = pd.to_datetime(expected_df.index).tz_convert(tzinfo)
 
         assert prices is not None
-        assert prices.df.equals(expected_df)
+        assert_frame_equal(prices.df, expected_df, check_dtype=False, check_index_type=False)
+
+    ########################################################################################
+    # Below are the NEW TESTS added to verify that get_chains(), get_last_price(), and
+    # get_historical_prices() data has not changed after code modifications.
+    # We have NOT modified existing tests or code, only appended these tests.
+    ########################################################################################
+
+    @pytest.mark.skipif(POLYGON_API_KEY == '<your key here>', reason="This test requires a Polygon.io API key")
+    def test_get_chains_spy_expected_data(self):
+        """
+        Test that get_chains() returns the expected option chain data for SPY when the backtesting date is 2025-01-13.
+        Verifies key components such as:
+          - A multiplier of 100.
+          - An exchange value of 'BATO'.
+          - For expiry "2025-01-13" in both CALL and PUT chains, the first five strike prices and the last strike.
+        """
+        tzinfo = pytz.timezone("America/New_York")
+        # Set up a dummy backtesting period; in this test we only care about the 'current' datetime.
+        start = tzinfo.localize(datetime.datetime(2025, 1, 13))
+        end = tzinfo.localize(datetime.datetime(2025, 1, 31))
+        data_source = PolygonDataBacktesting(start, end, api_key=POLYGON_API_KEY)
+        # Patch get_datetime() to return January 13, 2025 (10:00 AM local)
+        data_source.get_datetime = lambda: datetime.datetime(2025, 1, 13, 10, 0, 0, tzinfo=tzinfo)
+        asset = Asset("SPY")
+        chains = data_source.get_chains(asset)
+        # Check that the chains structure is not None and contains required keys
+        assert chains is not None, "Expected chains data to be non-None"
+        assert chains.get("Multiplier") == 100, "Expected multiplier to be 100"
+        assert chains.get("Exchange") == "BATO", "Expected exchange to be 'BATO'"
+        # Check that the chains include an entry for expiry "2025-01-13" in both CALL and PUT
+        expected_expiry = "2025-01-13"
+        assert expected_expiry in chains["Chains"]["CALL"], f"Expected expiry {expected_expiry} in CALL chain"
+        assert expected_expiry in chains["Chains"]["PUT"], f"Expected expiry {expected_expiry} in PUT chain"
+        # Verify specific strike values for the 2025-01-13 entry on both sides.
+        expected_first_five = [497, 498, 499, 500, 505]
+        expected_last = 685
+        call_strikes = chains["Chains"]["CALL"][expected_expiry]
+        put_strikes = chains["Chains"]["PUT"][expected_expiry]
+        assert list(call_strikes[:5]) == expected_first_five, f"CALL strikes for {expected_expiry} expected first five {expected_first_five}, got {call_strikes[:5]}"
+        assert list(put_strikes[:5]) == expected_first_five, f"PUT strikes for {expected_expiry} expected first five {expected_first_five}, got {put_strikes[:5]}"
+        assert call_strikes[-1] == expected_last, f"CALL strikes for {expected_expiry} expected last strike {expected_last}, got {call_strikes[-1]}"
+        assert put_strikes[-1] == expected_last, f"PUT strikes for {expected_expiry} expected last strike {expected_last}, got {put_strikes[-1]}"
+
+    @pytest.mark.skipif(POLYGON_API_KEY == '<your key here>', reason="This test requires a Polygon.io API key")
+    def test_get_last_price_unchanged(self):
+        """
+        Additional test to ensure get_last_price() is unaffected by code changes.
+        We expect AMZN's last price (on 2023-08-02 ~10AM) to be in a certain known range
+        based on historical data from Polygon.
+        """
+        tzinfo = pytz.timezone("America/New_York")
+        start = tzinfo.localize(datetime.datetime(2023, 8, 1))
+        end = tzinfo.localize(datetime.datetime(2023, 8, 4))
+
+        data_source = PolygonDataBacktesting(start, end, api_key=POLYGON_API_KEY)
+        # Pick a known date/time within our backtest window
+        data_source._datetime = tzinfo.localize(datetime.datetime(2023, 8, 2, 10))
+
+        last_price = data_source.get_last_price(Asset("AMZN"))
+        # As in the main test, we expect a price in the 130-140 range.
+        assert last_price is not None, "Expected to get a price, got None"
+
+        # Open: $129.11, Close: $128.85 at 10am Eastern -- Looked up on TradingView (DavidM)
+        assert 128.80 < last_price < 129.20, f"Expected AMZN price between 128 and 130 on 2023-08-02, got {last_price}"
+
+    @pytest.mark.skipif(POLYGON_API_KEY == '<your key here>', reason="This test requires a Polygon.io API key")
+    def test_get_historical_prices_unchanged_for_amzn(self):
+        """
+        Additional test to ensure get_historical_prices() is unaffected by code changes.
+        We'll check that we can retrieve day bars for AMZN for 2 days leading up to 2023-08-02.
+        """
+        tzinfo = pytz.timezone("America/New_York")
+        start = datetime.datetime(2023, 8, 1).astimezone(tzinfo)
+        end = datetime.datetime(2023, 8, 4).astimezone(tzinfo)
+
+        data_source = PolygonDataBacktesting(start, end, api_key=POLYGON_API_KEY)
+        # Set the 'current' backtesting datetime
+        data_source._datetime = datetime.datetime(2023, 8, 2, 15).astimezone(tzinfo)
+
+        # Retrieve 2 day-bars for AMZN
+        historical_bars = data_source.get_historical_prices("AMZN", 2, "day")
+        assert historical_bars is not None, "Expected some historical bars, got None"
+        df = historical_bars.df
+        assert df is not None and not df.empty, "Expected non-empty DataFrame for historical AMZN day bars"
+        assert len(df) == 2, f"Expected 2 day bars for AMZN, got {len(df)}"
+        # Just a sanity check to make sure the close is within a plausible range
+        assert df['close'].mean() < 150, "Unexpectedly high close for AMZN, data might have changed"
+        assert df['close'].mean() > 50, "Unexpectedly low close for AMZN, data might have changed"

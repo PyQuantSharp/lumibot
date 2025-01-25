@@ -2,10 +2,14 @@ import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
+import traceback
+import time
+
+import pandas as pd
 
 from lumibot import LUMIBOT_DEFAULT_PYTZ, LUMIBOT_DEFAULT_TIMEZONE
-from lumibot.entities import Asset, AssetsMapping
-from lumibot.tools import black_scholes
+from lumibot.entities import Asset, AssetsMapping, Bars
+from lumibot.tools import black_scholes, create_options_symbol
 
 from .exceptions import UnavailabeTimestep
 
@@ -65,9 +69,11 @@ class DataSource(ABC):
     @abstractmethod
     def get_historical_prices(
         self, asset, length, timestep="", timeshift=None, quote=None, exchange=None, include_after_hours=True
-    ):
+    ) -> Bars:
         """
-        Get bars for a given asset
+        Get bars for a given asset, going back in time from now, getting length number of bars by timestep.
+        For example, with a length of 10 and a timestep of "1day", and now timeshift, this
+        would return the last 10 daily bars.
 
         Parameters
         ----------
@@ -86,11 +92,16 @@ class DataSource(ABC):
             The exchange to get the bars for.
         include_after_hours : bool
             Whether to include after hours data.
+
+        Returns
+        -------
+        Bars
+            The bars for the asset.
         """
         pass
 
     @abstractmethod
-    def get_last_price(self, asset, quote=None, exchange=None):
+    def get_last_price(self, asset, quote=None, exchange=None) -> float:
         """
         Takes an asset and returns the last known price
 
@@ -297,8 +308,8 @@ class DataSource(ABC):
         length,
         timestep="minute",
         timeshift=None,
-        chunk_size=10,
-        max_workers=200,
+        chunk_size=2,
+        max_workers=2,
         quote=None,
         exchange=None,
         include_after_hours=True,
@@ -306,33 +317,38 @@ class DataSource(ABC):
         """Get bars for the list of assets"""
 
         def process_chunk(chunk):
-            """Process a chunk of assets."""
             chunk_result = {}
             for asset in chunk:
-                chunk_result[asset] = self.get_historical_prices(
-                    asset,
-                    length,
-                    timestep=timestep,
-                    timeshift=timeshift,
-                    quote=quote,
-                    exchange=exchange,
-                    include_after_hours=include_after_hours,
-                )
+                try:
+                    chunk_result[asset] = self.get_historical_prices(
+                        asset,
+                        length,
+                        timestep=timestep,
+                        timeshift=timeshift,
+                        quote=quote,
+                        exchange=exchange,
+                        include_after_hours=include_after_hours,
+                    )
+
+                    # Sleep to prevent rate limiting
+                    time.sleep(0.1)
+                except Exception as e:
+                    # Log once per asset to avoid spamming with a huge traceback
+                    logging.warning(f"Error retrieving data for {asset.symbol}: {e}")
+                    tb = traceback.format_exc()
+                    logging.warning(tb)  # This prints the traceback
+                    chunk_result[asset] = None
             return chunk_result
 
         # Convert strings to Asset objects
         assets = [Asset(symbol=a) if isinstance(a, str) else a for a in assets]
 
-        # Chunking the assets
+        # Chunk the assets
         chunks = [assets[i : i + chunk_size] for i in range(0, len(assets), chunk_size)]
 
-        # Initialize ThreadPoolExecutor
         results = {}
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit tasks
             futures = [executor.submit(process_chunk, chunk) for chunk in chunks]
-
-            # Collect results as they complete
             for future in as_completed(futures):
                 results.update(future.result())
 
@@ -376,6 +392,96 @@ class DataSource(ABC):
                 result[asset] = bars.get_last_dividend()
 
         return AssetsMapping(result)
+
+    def get_chain_full_info(self, asset: Asset, expiry: str, chains=None, underlying_price=float, risk_free_rate=float,
+                            strike_min=None, strike_max=None) -> pd.DataFrame:
+        """
+        Get the full chain information for an option asset, including: greeks, bid/ask, open_interest, etc. For
+        brokers that do not support this, greeks will be calculated locally. For brokers like Tradier this function
+        is much faster as only a single API call can be done to return the data for all options simultaneously.
+
+        Parameters
+        ----------
+        asset : Asset
+            The option asset to get the chain information for.
+        expiry : str | datetime.datetime | datetime.date
+            The expiry date of the option chain.
+        chains : dict
+            The chains dictionary created by `get_chains` method. This is used
+            to get the list of strikes needed to calculate the greeks.
+        underlying_price : float
+            Price of the underlying asset.
+        risk_free_rate : float
+            The risk-free rate used in interest calculations.
+        strike_min : float
+            The minimum strike price to return in the chain. If None, will return all strikes.
+            Providing this will speed up execution by limiting the number of strikes queried.
+        strike_max : float
+            The maximum strike price to return in the chain. If None, will return all strikes.
+            Providing this will speed up execution by limiting the number of strikes queried.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the full chain information for the option asset. Greeks columns will be named as
+            'greeks.delta', 'greeks.theta', etc.
+        """
+        start_t = time.perf_counter()
+        # Base level DataSource assumes that the data source does not support this and the greeks will be calculated
+        # locally. Subclasses can override this method to provide a more efficient implementation.
+        expiry_dt = datetime.strptime(expiry, "%Y-%m-%d") if isinstance(expiry, str) else expiry
+        expiry_str = expiry_dt.strftime("%Y-%m-%d")
+        if chains is None:
+            chains = self.get_chains(asset)
+
+        rows = []
+        query_total = 0
+        for right in chains["Chains"]:
+            for strike in chains["Chains"][right][expiry_str]:
+                # Skip strikes outside the requested range. Saves querying time.
+                if strike_min and strike < strike_min or strike_max and strike > strike_max:
+                    continue
+
+                # Build the option asset and query for the price
+                opt_asset = Asset(
+                    asset.symbol,
+                    asset_type="option",
+                    expiration=expiry_dt,
+                    strike=strike,
+                    right=right,
+                )
+                query_t = time.perf_counter()
+                option_symbol = create_options_symbol(opt_asset.symbol, expiry_dt, right, strike)
+                opt_price = self.get_last_price(opt_asset)
+                greeks = self.calculate_greeks(opt_asset, opt_price, underlying_price, risk_free_rate)
+                query_total += time.perf_counter() - query_t
+
+                # Build the row. Match the Tradier column naming conventions.
+                row = {
+                    "symbol": option_symbol,
+                    "last": opt_price,
+                    "expiration_date": expiry_dt,
+                    "strike": strike,
+                    "option_type": right,
+                    "underlying": opt_asset.symbol,
+                    "open_interest": 0,
+                    "bid": 0.0,
+                    "ask": 0.0,
+                    "bidsize": 0,
+                    "asksize": 0,
+                    "volume": 0,
+                    "last_volume": 0,
+                    "average_volume": 0,
+                    "type": 'option',
+                }
+                # Add in the greeks. Format: greeks.delta, greeks.theta, etc.
+                row.update({f"greeks.{col}": val for col, val in greeks.items()})
+                rows.append(row)
+
+        logging.info(f"Chain Full Info Query Total: {query_total:.2f}s. "
+                     f"Total Time: {time.perf_counter() - start_t:.2f}s, "
+                     f"Rows: {len(rows)}")
+        return pd.DataFrame(rows).sort_values("strike") if rows else pd.DataFrame()
 
     def calculate_greeks(
         self,

@@ -4,13 +4,13 @@ import signal
 import sys
 from pathlib import Path
 
-import appdirs
-
 # Overloading time.sleep to warn users against using it
+
+logger = logging.getLogger(__name__)
 
 
 class Trader:
-    def __init__(self, logfile="", backtest=False, debug=False, strategies=None):
+    def __init__(self, logfile="", backtest=False, debug=False, strategies=None, quiet_logs=False):
         """
 
         Parameters
@@ -24,11 +24,22 @@ class Trader:
             Whether to run the strategies in debug mode or not. This will set the log level to DEBUG.
         strategies: list
             A list of strategies to run. If not specified, you must add strategies using trader.add_strategy(strategy)
+        quiet_logs: bool
+            Whether to quiet backtest logs by setting the log level to ERROR. Defaults to False.
         """
+        # Check if the logfile is a valid path
+        if logfile:
+            if not isinstance(logfile, str):
+                raise ValueError("logfile must be a string")
+
         # Setting debug and _logfile parameters and setting global log format
         self.debug = debug
         self.backtest = backtest
-        self.log_format = logging.Formatter("%(asctime)s: %(name)s: %(levelname)s: %(message)s")
+        std_format = "%(asctime)s: %(levelname)s: %(message)s"
+        debug_format = "%(asctime)s: %(name)s: %(levelname)s: %(message)s"
+        log_format = std_format if not self.debug else debug_format
+        self.log_format = logging.Formatter(log_format)
+        self.quiet_logs = quiet_logs  # Turns off all logging execpt for error messages in backtesting
 
         if logfile:
             self.logfile = Path(logfile)
@@ -54,7 +65,16 @@ class Trader:
         """Adds a strategy to the trader"""
         self._strategies.append(strategy)
 
-    def run_all(self, async_=False, show_plot=True, show_tearsheet=True, save_tearsheet=True, show_indicators=True, tearsheet_file=None):
+    def run_all(
+            self, 
+            async_=False, 
+            show_plot=True, 
+            show_tearsheet=True, 
+            save_tearsheet=True, 
+            show_indicators=True, 
+            tearsheet_file=None,
+            base_filename=None,
+            ):
         """
         run all strategies
 
@@ -74,6 +94,12 @@ class Trader:
 
         show_indicators: bool
             Whether to display the indicators (markers and lines) in the user's web browser. This is only used for backtesting.
+
+        tearsheet_file: str
+            The path to save the tearsheet. This is only used for backtesting.
+
+        base_filename: str
+            The base filename to save the tearsheet, plot, indicators, etc. This is only used for backtesting.
 
         Returns
         -------
@@ -107,7 +133,7 @@ class Trader:
         strat = self._strategies[0]
         if self.is_backtest_broker:
             strat.verify_backtest_inputs(strat.backtesting_start, strat.backtesting_end)
-            logging.info("Backtesting starting...")
+            logger.info("Backtesting starting...")
 
         signal.signal(signal.SIGINT, self._stop_pool)
         self._set_logger()
@@ -118,7 +144,8 @@ class Trader:
         result = self._collect_analysis()
 
         if self.is_backtest_broker:
-            logging.info("Backtesting finished")
+            logger.setLevel(logging.INFO)
+            logger.info("Backtesting finished")
             strat.backtest_analysis(
                 logdir=self.logdir,
                 show_plot=show_plot,
@@ -126,14 +153,16 @@ class Trader:
                 save_tearsheet=save_tearsheet,
                 show_indicators=show_indicators,
                 tearsheet_file=tearsheet_file,
+                base_filename=base_filename,
             )
 
         return result
 
     # Async version of run_all
-    def run_all_async(self, backtest=False):
+    def run_all_async(self):
         """run all strategies"""
-        return self.run_all(backtest=backtest, async_=True)
+        self.run_all(async_=True)
+        return self._strategies
 
     def stop_all(self):
         logging.info("Stopping all strategies for this trader")
@@ -145,7 +174,7 @@ class Trader:
         logging.getLogger("requests").setLevel(logging.ERROR)
         logging.getLogger("apscheduler.scheduler").setLevel(logging.ERROR)
         logging.getLogger("apscheduler.executors.default").setLevel(logging.ERROR)
-
+        logging.getLogger("lumibot.data_sources.yahoo_data").setLevel(logging.ERROR)
         logger = logging.getLogger()
 
         for handler in logger.handlers:
@@ -160,10 +189,16 @@ class Trader:
             logger.setLevel(logging.DEBUG)
         elif self.is_backtest_broker:
             logger.setLevel(logging.INFO)
-            for handler in logger.handlers:
-                if handler.__class__.__name__ == "StreamHandler":
-                    handler.setLevel(logging.ERROR)
+
+            # Quiet logs turns off all backtesting logging except for error messages
+            if self.quiet_logs:
+                logger.setLevel(logging.ERROR)
+
+            # Ensure console has minimal logging to keep things clean during backtesting
+            stream_handler.setLevel(logging.ERROR)
+
         else:
+            # Live trades should always have full logging.
             logger.setLevel(logging.INFO)
 
         # Setting file logging
@@ -202,11 +237,13 @@ class Trader:
         lifecycle method. python signal handlers
         needs two positional arguments, the signal
         and the frame"""
+
         logging.debug(f"Received signal number {sig}.")
         logging.debug(f"Closing Trader in {frame} frame.")
         for strategy_thread in self._pool:
-            strategy_thread.stop()
-        logging.info("Trading finished")
+            if not strategy_thread.abrupt_closing:
+                strategy_thread.stop()
+                logging.info(f"Trading finished for {strategy_thread.strategy._name}")
 
     def _collect_analysis(self):
         result = {}

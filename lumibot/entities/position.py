@@ -20,13 +20,29 @@ class Position:
         The quantity of the asset owned.
     orders : list of Order
         The orders that have been executed for this position.
+    hold : float
+        The assets that are not free in the portfolio. (Crypto: only)
+    available : float
+        The assets that are free in the portfolio. (Crypto: only)
+    avg_fill_price : float
+        The average fill price of the position.
     """
 
-    def __init__(self, strategy, asset, quantity, orders=None, hold=0, available=0):
+    def __init__(
+            self, 
+            strategy, 
+            asset, 
+            quantity, 
+            orders=None, 
+            hold=0, 
+            available=0, 
+            avg_fill_price=None
+        ):
         self.strategy = strategy
         self.asset = asset
         self.symbol = self.asset.symbol
         self.orders = None
+        self.avg_fill_price = avg_fill_price
 
         # Quantity is the total number of shares/units owned in the position.
         # setting the quantity
@@ -155,3 +171,28 @@ class Position:
         self._quantity += Decimal(increment)
         if order not in self.orders:
             self.orders.append(order)
+
+    # ========= Serialization methods ===========
+    def to_dict(self):
+        return {
+            "strategy": self.strategy,
+            "asset": self.asset.to_dict(),
+            "quantity": float(self.quantity),
+            "orders": [order.to_dict() for order in self.orders],
+            "hold": self.hold,
+            "available": float(self.available) if self.available else None,
+            "avg_fill_price": float(self.avg_fill_price) if self.avg_fill_price else None,
+        }
+    
+    @classmethod
+    def from_dict(cls, data):
+        asset = entities.Asset.from_dict(data["asset"])
+        return cls(
+            strategy=data["strategy"],
+            asset=asset,
+            quantity=Decimal(data["quantity"]),
+            orders=[entities.Order.from_dict(order) for order in data["orders"]],
+            hold=Decimal(data["hold"]),
+            available=Decimal(data["available"]),
+            avg_fill_price=Decimal(data["avg_fill_price"]),
+        )

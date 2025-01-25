@@ -1,33 +1,25 @@
 import datetime
-import io
 import os
 import time
-import uuid
 from asyncio.log import logger
 from decimal import Decimal
-from typing import Union
+from typing import Union, List, Type
 
 import jsonpickle
 import matplotlib
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 import pandas_market_calendars as mcal
-import pytz
-import requests
 from termcolor import colored
 
-from lumibot.entities import Asset, Order
-from lumibot.tools import get_risk_free_rate
+from ..entities import Asset, Order, Position, Data, TradingFee
+from ..tools import get_risk_free_rate
+from ..traders import Trader
+from ..data_sources import DataSource
 
 from ._strategy import _Strategy
 
 matplotlib.use("Agg")
-
-# Set the stats table name for when storing stats in a database, defined by account_history_db_connection_str
-STATS_TABLE_NAME = "strategy_tracker"
 
 class Strategy(_Strategy):
     @property
@@ -152,6 +144,33 @@ class Strategy(_Strategy):
         self._minutes_before_closing = value
 
     @property
+    def minutes_after_closing(self):
+        """Get or set the number of minutes that the strategy will continue executing after market closes.
+
+        The lifecycle method after_market_closes is executed minutes_after_closing minutes after the market closes. By default, equals to 0 minutes.
+
+        Returns
+        -------
+        int
+            The number of minutes after the market closes that the strategy will continue executing.
+
+        Example
+        -------
+        >>> # Set the number of minutes after the market closes
+        >>> self.minutes_after_closing = 10
+
+        >>> # Set the number of minutes after the market closes to 0 in the initialize method
+        >>> def initialize(self):
+        >>>     self.minutes_after_closing = 0
+
+        """
+        return self._minutes_after_closing
+
+    @minutes_after_closing.setter
+    def minutes_after_closing(self, value):
+        self._minutes_after_closing = value
+
+    @property
     def sleeptime(self):
         """Get or set the current sleep time for the strategy.
 
@@ -204,23 +223,6 @@ class Strategy(_Strategy):
     @sleeptime.setter
     def sleeptime(self, value):
         self._sleeptime = value
-
-    @property
-    def is_backtesting(self):
-        """Returns True if the strategy is running in backtesting mode.
-
-        Returns
-        -------
-        is_backtesting : bool
-            True if the strategy is running in backtesting mode.
-
-        Example
-        -------
-        >>> # Check if the strategy is running in backtesting mode
-        >>> if self.is_backtesting:
-        >>>     self.log_message("Running in backtesting mode")
-        """
-        return self._is_backtesting
 
     @property
     def backtesting_start(self):
@@ -337,7 +339,7 @@ class Strategy(_Strategy):
 
     # ======= Helper Methods =======================
 
-    def log_message(self, message, color=None, broadcast=False):
+    def log_message(self, message: str, color: str = None, broadcast: bool = False):
         """Logs an info message prefixed with the strategy name.
 
         Uses python logging to log the message at the `info` level.
@@ -363,15 +365,20 @@ class Strategy(_Strategy):
         --------
         >>> self.log_message('Sending a buy order')
         """
-        if color is not None:
-            colored_message = colored(message, color)
-            self.logger.info(colored_message)
-        else:
-            self.logger.info(message)
 
         if broadcast:
             # Send the message to Discord
             self.send_discord_message(message)
+
+        # If we are backtesting and we don't want to save the logfile, don't log (they're not displayed in the console anyway)
+        if not self.save_logfile and self.is_backtesting:
+            return
+
+        if color:
+            colored_message = colored(message, color)
+            self.logger.info(colored_message)
+        else:
+            self.logger.info(message)
 
         return message
 
@@ -379,24 +386,24 @@ class Strategy(_Strategy):
 
     def create_order(
         self,
-        asset,
-        quantity,
-        side,
-        limit_price=None,
-        stop_price=None,
-        time_in_force="gtc",
-        good_till_date=None,
-        take_profit_price=None,
-        stop_loss_price=None,
-        stop_loss_limit_price=None,
-        trail_price=None,
-        trail_percent=None,
-        position_filled=False,
-        exchange=None,
-        quote=None,
-        pair=None,
-        type=None,
-        custom_params={},
+        asset: Union[str, Asset],
+        quantity: Union[int, str, Decimal],
+        side: str,
+        limit_price: float = None,
+        stop_price: float = None,
+        time_in_force: str = "gtc",
+        good_till_date: datetime.datetime = None,
+        take_profit_price: float = None,
+        stop_loss_price: float = None,
+        stop_loss_limit_price: float = None,
+        trail_price: float = None,
+        trail_percent: float = None,
+        position_filled: float = None,
+        exchange: str = None,
+        quote: Asset = None,
+        pair: str = None,
+        type: str = None,
+        custom_params: dict = None,
     ):
         # noinspection PyShadowingNames,PyUnresolvedReferences
         """Creates a new order for this specific strategy. Once created, an order must still be submitted.
@@ -686,15 +693,17 @@ class Strategy(_Strategy):
 
     # ======= Broker Methods ============
 
-    def sleep(self, sleeptime):
+    def sleep(self, sleeptime: float, process_pending_orders: bool = True):
         """Sleep for sleeptime seconds.
 
-        Use to pause the execution of the program. This should be used instead of `time.sleep` within the strategy.
+        Use to pause the execution of the program. This should be used instead of `time.sleep` within the strategy. Also processes pending orders in the meantime.
 
         Parameters
         ----------
         sleeptime : float
             Time in seconds the program will be paused.
+        process_pending_orders : bool
+            If True, the broker will process any pending orders.
 
         Returns
         -------
@@ -705,13 +714,14 @@ class Strategy(_Strategy):
         >>> # Sleep for 5 seconds
         >>> self.sleep(5)
         """
+
         if not self.is_backtesting:
             # Sleep for the the sleeptime in seconds.
             time.sleep(sleeptime)
 
         return self.broker.sleep(sleeptime)
 
-    def get_selling_order(self, position):
+    def get_selling_order(self, position: Position):
         """Get the selling order for a position.
 
         Parameters
@@ -741,7 +751,7 @@ class Strategy(_Strategy):
         else:
             return None
 
-    def set_market(self, market):
+    def set_market(self, market: str):
         """Set the market for trading hours.
 
         Setting the market will determine the trading hours for live
@@ -907,7 +917,7 @@ class Strategy(_Strategy):
 
         self.broker.market = market
 
-    def await_market_to_open(self, timedelta=None):
+    def await_market_to_open(self, timedelta: int = None):
         """Executes infinite loop until market opens
 
         If the market is closed, pauses code execution until
@@ -937,7 +947,7 @@ class Strategy(_Strategy):
             timedelta = self.minutes_before_opening
         return self.broker._await_market_to_open(timedelta, strategy=self)
 
-    def await_market_to_close(self, timedelta=None):
+    def await_market_to_close(self, timedelta: int = None):
         """Sleep until market closes.
 
         If the market is open, pauses code execution until market is
@@ -966,19 +976,19 @@ class Strategy(_Strategy):
         return self.broker._await_market_to_close(timedelta, strategy=self)
 
     @staticmethod
-    def crypto_assets_to_tuple(base, quote):
+    def crypto_assets_to_tuple(base, quote: Asset):
         """Check for crypto quote, convert to tuple"""
         if isinstance(base, Asset) and base.asset_type == "crypto" and isinstance(quote, Asset):
             return (base, quote)
         return base
 
-    def get_tracked_position(self, asset):
+    def get_tracked_position(self, asset: Union[str, Asset]):
         """Deprecated, will be removed in the future. Please use `get_position()` instead."""
 
         self.log_message("Warning: get_tracked_position() is deprecated, please use get_position() instead.")
         self.get_position(asset)
 
-    def get_position(self, asset):
+    def get_position(self, asset: Union[str, Asset]):
         """Get a tracked position given an asset for the current
         strategy.
 
@@ -1096,7 +1106,7 @@ class Strategy(_Strategy):
     def positions(self):
         return self.get_tracked_positions()
 
-    def _get_contract_details(self, asset):
+    def _get_contract_details(self, asset: Asset):
         """Convert an asset into a IB Contract.
 
         Used internally to create an IB Contract from an asset. Used
@@ -1117,13 +1127,13 @@ class Strategy(_Strategy):
         asset = self._sanitize_user_asset(asset)
         return self.broker.get_contract_details(asset)
 
-    def get_tracked_order(self, identifier):
+    def get_tracked_order(self, identifier: str):
         """Deprecated, will be removed in the future. Please use `get_order()` instead."""
 
         self.log_message("Warning: get_tracked_order() is deprecated, please use get_order() instead.")
         return self.get_order(identifier)
 
-    def get_order(self, identifier):
+    def get_order(self, identifier: str):
         """Get a tracked order given an identifier. Check the details of the order including status, etc.
 
         Returns
@@ -1143,7 +1153,7 @@ class Strategy(_Strategy):
             return order
         return None
 
-    def get_tracked_orders(self, identifier):
+    def get_tracked_orders(self):
         """Deprecated, will be removed in the future. Please use `get_orders()` instead."""
 
         self.log_message("Warning: get_tracked_orders() is deprecated, please use get_orders() instead.")
@@ -1201,7 +1211,7 @@ class Strategy(_Strategy):
         """
         return self.broker.get_tracked_assets(self.name)
 
-    def get_asset_potential_total(self, asset):
+    def get_asset_potential_total(self, asset: Asset):
         """Get the potential total for the asset (orders + positions).
 
         Parameters
@@ -1233,24 +1243,43 @@ class Strategy(_Strategy):
         asset = self._sanitize_user_asset(asset)
         return self.broker.get_asset_potential_total(self.name, asset)
 
-    def submit_order(self, order):
-        """Submit an order for an asset
+    def submit_order(self, order: Order, **kwargs):
+        """Submit an order or a list of orders for assets
 
-        Submits an order object for processing by the active broker.
+        Submits an order or a list of orders for processing by the active broker.
 
         Parameters
         ---------
-        order : Order object
-            Order object containing the asset and instructions for
-            executing the order.
+        order : Order object or list of Order objects
+            Order object or a list of order objects containing the asset and instructions for executing the order.
+        is_multileg : bool
+            Tradier only.
+            A boolean value to indicate if the orders are part of one multileg order.
+            Currently, this is only available for Tradier.
+        order_type : str
+            Tradier only.
+            The order type for the multileg order. Possible values are:
+            ('market', 'debit', 'credit', 'even'). Default is 'market'.
+        duration : str
+            Tradier only.
+            The duration for the multileg order. Possible values are:
+            ('day', 'gtc', 'pre', 'post'). Default is 'day'.
+        price : float
+            Tradier only.
+            The limit price for the multileg order. Required for 'debit' and 'credit' order types.
+        tag : str
+            Tradier only.
+            A tag for the multileg order.
 
         Returns
         -------
-        Order object
-            Processed order object.
+        Order object or list of Order objects
+            Processed order object(s).
 
-        Example
-        -------
+        Examples
+        --------
+        Submitting a single order:
+
         >>> # For a market buy order
         >>> order = self.create_order("SPY", 100, "buy")
         >>> self.submit_order(order)
@@ -1271,159 +1300,6 @@ class Strategy(_Strategy):
         >>> order = self.create_order("SPY", 100, "sell")
         >>> self.submit_order(order)
 
-        >>> # For a limit sell order
-        >>> order = self.create_order("SPY", 100, "sell", limit_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For buying a future
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset = Asset(
-        >>>    "ES",
-        >>>    asset_type=Asset.AssetType.FUTURE,
-        >>>    expiration_date="2020-01-01",
-        >>>    multiplier=100)
-        >>> order = self.create_order(asset, 100, "buy")
-        >>> self.submit_order(order)
-
-        >>> # For selling a future
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset = Asset(
-        >>>    "ES",
-        >>>    asset_type=Asset.AssetType.FUTURE,
-        >>>    expiration_date="2020-01-01"
-        >>>    multiplier=100)
-        >>> order = self.create_order(asset, 100, "sell")
-        >>> self.submit_order(order)
-
-        >>> # For buying an option
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset = Asset(
-        >>>    "SPY",
-        >>>    asset_type=Asset.AssetType.OPTION,
-        >>>    expiration_date="2020-01-01",
-        >>>    strike_price=100.00,
-        >>>    right="call")
-        >>> order = self.create_order(asset, 10, "buy")
-        >>> self.submit_order(order)
-
-        >>> # For selling an option
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset = Asset(
-        >>>    "SPY",
-        >>>    asset_type=Asset.AssetType.OPTION,
-        >>>    expiration_date="2020-01-01",
-        >>>    strike_price=100.00,
-        >>>    right="call")
-        >>> order = self.create_order(asset, 10, "sell")
-        >>> self.submit_order(order)
-
-        >>> # For buying a stock
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "buy")
-        >>> self.submit_order(order)
-
-        >>> # For selling a stock
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "sell")
-        >>> self.submit_order(order)
-
-        >>> # For buying a stock with a limit price
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "buy", limit_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For selling a stock with a limit price
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "sell", limit_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For buying a stock with a stop price
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "buy", stop_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For buying FOREX
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> base_asset = Asset(
-            symbol="GBP,
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> quote_asset = Asset(
-            symbol="USD",
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> order = self.create_order(asset, 10, "buy", quote=quote_asset)
-        >>> self.submit_order(order)
-
-        >>> # For selling FOREX
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> base_asset = Asset(
-            symbol="EUR",
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> quote_asset = Asset(
-            symbol="USD",
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> order = self.create_order(asset, 10, "sell", quote=quote_asset)
-        >>> self.submit_order(order)
-
-        >>> # For buying an option with a limit price
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset = Asset(
-        >>>    "SPY",
-        >>>    asset_type=Aset.AssetType.OPTION,
-        >>>    expiration_date="2020-01-01",
-        >>>    strike_price=100.00,
-        >>>    right="call")
-        >>> order = self.create_order(asset, 10, "buy", limit_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For selling an option with a limit price
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset = Asset(
-        >>>    "SPY",
-        >>>    asset_type=Asset.AssetType.OPTION,
-        >>>    expiration_date="2020-01-01",
-        >>>    strike_price=100.00,
-        >>>    right="call")
-        >>> order = self.create_order(asset, 10, "sell", limit_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For buying an option with a stop price
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset = Asset(
-        >>>    "SPY",
-        >>>    asset_type=Asset.AssetType.OPTION,
-        >>>    expiration_date="2020-01-01",
-        >>>    strike_price=100.00,
-        >>>    right="call")
-        >>> order = self.create_order(asset, 10, "buy", stop_price=100.00)
-
-        >>> # For selling a stock with a stop price
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "sell", stop_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For buying a stock with a trailing stop price
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "buy", trailing_stop_price=100.00)
-        >>> self.submit_order(order)
-
-        >>> # For selling a stock with a trailing stop price
-        >>> asset = Asset("SPY")
-        >>> order = self.create_order(asset, 10, "sell", trailing_stop_price=100.00)
-        >>> self.submit_order(order)
-
         >>> # For buying a crypto with a market price
         >>> from lumibot.entities import Asset
         >>>
@@ -1436,77 +1312,87 @@ class Strategy(_Strategy):
         >>>    asset_type=Asset.AssetType.CRYPTO,
         >>> )
         >>> order = self.create_order(asset_base, 0.1, "buy", quote=asset_quote)
-        >>> or...
+        >>> self.submit_order(order)
+        >>> # or...
         >>> order = self.create_order((asset_base, asset_quote), 0.1, "buy")
         >>> self.submit_order(order)
 
-        >>> # For buying a crypto with a limit price
+        Submitting multiple orders:
+
+        >>> # For 2 market buy orders
+        >>> order1 = self.create_order("SPY", 100, "buy")
+        >>> order2 = self.create_order("TLT", 200, "buy")
+        >>> self.submit_order([order1, order2])
+
+        >>> # For 2 limit buy orders
+        >>> order1 = self.create_order("SPY", 100, "buy", limit_price=100.00)
+        >>> order2 = self.create_order("TLT", 200, "buy", limit_price=100.00)
+        >>> self.submit_order([order1, order2])
+
+        >>> # For 2 CRYPTO buy orders
         >>> from lumibot.entities import Asset
         >>>
-        >>> asset_base = Asset(
+        >>> asset_BTC = Asset(
         >>>    "BTC",
+        >>>    asset_type=Asset.AssetType.CRYPTO,
+        >>> )
+        >>> asset_ETH = Asset(
+        >>>    "ETH",
         >>>    asset_type=Asset.AssetType.CRYPTO,
         >>> )
         >>> asset_quote = Asset(
         >>>    "USD",
-        >>>    asset_type=Asset.AssetType.CRYPTO,
+        >>>    asset_type=Asset.AssetType.FOREX,
         >>> )
-        >>> order = self.create_order(asset_base, 0.1, "buy", limit_price="41250", quote=asset_quote)
-        >>> or...
-        >>> order = self.create_order((asset_base, asset_quote), 0.1, "buy", limit_price="41250")
-        >>> self.submit_order(order)
-
-        >>> # For buying a crypto with a stop limit price
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> asset_base = Asset(
-        >>>    "BTC",
-        >>>    asset_type=Asset.AssetType.CRYPTO,
-        >>> )
-        >>> asset_quote = Asset(
-        >>>    "USD",
-        >>>    asset_type=Asset.AssetType.CRYPTO,
-        >>> )
-        >>> order = self.create_order(asset_base, 0.1, "buy", limit_price="41325", stop_price="41300", quote=asset_quote)
-        >>> or...
-        >>> order = self.create_order((asset_base, asset_quote), 0.1, "buy", limit_price="41325", stop_price="41300",)
-        >>> self.submit_order(order)
-
-        >>> # For an OCO order
-        >>> order = self.create_order(
-        >>>                "SPY",
-        >>>                100,
-        >>>                "sell",
-        >>>                take_profit_price=limit,
-        >>>                stop_loss_price=stop_loss,
-        >>>                type="oco",
-        >>>            )
-        >>> self.submit_order(order)
-
+        >>> order1 = self.create_order(asset_BTC, 0.1, "buy", quote=asset_quote)
+        >>> order2 = self.create_order(asset_ETH, 10, "buy", quote=asset_quote)
+        >>> self.submit_order([order1, order2])
+        >>> # or...
+        >>> order1 = self.create_order((asset_BTC, asset_quote), 0.1, "buy")
+        >>> order2 = self.create_order((asset_ETH, asset_quote), 10, "buy")
+        >>> self.submit_order([order1, order2])
         """
+        
+        if isinstance(order, list):
+            # Submit multiple orders
+            # Validate orders
+            default_multileg = True
 
-        if order is None:
-            self.logger.error(
-                "Cannot submit a None order, please check to make sure that you have actually created an order before submitting."
-            )
-            return
+            for o in order:
+                if not self._validate_order(o):
+                    return
+                
+                if o.asset.asset_type != "option":
+                    default_multileg = False
+            
+            if 'is_multileg' not in kwargs:
+                kwargs['is_multileg'] = default_multileg
 
-        return self.broker.submit_order(order)
+            return self.broker.submit_orders(order, **kwargs)
 
-    def submit_orders(self, orders, **kwargs):
-        """Submit a list of orders
+        else:
+            # Submit single order
+            if not self._validate_order(order):
+                return
+
+            return self.broker.submit_order(order)
+
+    def submit_orders(self, orders: List[Order], **kwargs):
+        """[Deprecated] Submit a list of orders
+
+        This method is deprecated and will be removed in future versions.
+        Please use `submit_order` instead.
 
         Submits a list of orders for processing by the active broker.
 
         Parameters
-        ---------
+        ----------
         orders : list of orders
-            A list of order objects containing the asset and
-            instructions for the orders.
+            A list of order objects containing the asset and instructions for the orders.
         is_multileg : bool
             Tradier only.
             A boolean value to indicate if the orders are part of one multileg order.
-            Currently this is only available for Tradier.
+            Currently, this is only available for Tradier.
         order_type : str
             Tradier only.
             The order type for the multileg order. Possible values are:
@@ -1521,14 +1407,14 @@ class Strategy(_Strategy):
         tag : str
             Tradier only.
             A tag for the multileg order.
-        
+
         Returns
         -------
         list of Order objects
             List of processed order objects.
 
-        Example
-        -------
+        Examples
+        --------
         >>> # For 2 market buy orders
         >>> order1 = self.create_order("SPY", 100, "buy")
         >>> order2 = self.create_order("TLT", 200, "buy")
@@ -1539,67 +1425,7 @@ class Strategy(_Strategy):
         >>> order2 = self.create_order("TLT", 200, "buy", limit_price=100.00)
         >>> self.submit_orders([order1, order2])
 
-        >>> # For 2 stop loss orders
-        >>> order1 = self.create_order("SPY", 100, "buy", stop_price=100.00)
-        >>> order2 = self.create_order("TLT", 200, "buy", stop_price=100.00)
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 stop limit orders
-        >>> order1 = self.create_order("SPY", 100, "buy", limit_price=100.00, stop_price=100.00)
-        >>> order2 = self.create_order("TLT", 200, "buy", limit_price=100.00, stop_price=100.00)
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 market sell orders
-        >>> order1 = self.create_order("SPY", 100, "sell")
-        >>> order2 = self.create_order("TLT", 200, "sell")
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 limit sell orders
-        >>> order1 = self.create_order("SPY", 100, "sell", limit_price=100.00)
-        >>> order2 = self.create_order("TLT", 200, "sell", limit_price=100.00)
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 stop loss orders
-        >>> order1 = self.create_order("SPY", 100, "sell", stop_price=100.00)
-        >>> order2 = self.create_order("TLT", 200, "sell", stop_price=100.00)
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 stop limit orders
-        >>> order1 = self.create_order("SPY", 100, "sell", limit_price=100.00, stop_price=100.00)
-        >>> order2 = self.create_order("TLT", 200, "sell", limit_price=100.00, stop_price=100.00)
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 FOREX buy orders
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> base_asset = Asset(
-            symbol="EUR",
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> quote_asset = Asset(
-            symbol="USD",
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> order1 = self.create_order(base_asset, 100, "buy", quote=quote_asset)
-        >>> order2 = self.create_order(base_asset, 200, "buy", quote=quote_asset)
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 FOREX sell orders
-        >>> from lumibot.entities import Asset
-        >>>
-        >>> base_asset = Asset(
-            symbol="EUR",
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> quote_asset = Asset(
-            symbol="USD",
-            asset_type=Asset.AssetType.FOREX,
-        )
-        >>> order1 = self.create_order(base_asset, 100, "sell", quote=quote_asset)
-        >>> order2 = self.create_order(base_asset, 200, "sell", quote=quote_asset)
-        >>> self.submit_orders([order1, order2])
-
-        >>> # For 2 CRYPTO buy orders.
+        >>> # For 2 CRYPTO buy orders
         >>> from lumibot.entities import Asset
         >>>
         >>> asset_BTC = Asset(
@@ -1612,19 +1438,21 @@ class Strategy(_Strategy):
         >>> )
         >>> asset_quote = Asset(
         >>>    "USD",
-        >>>    asset_type=Aset.AssetType.FOREX,
+        >>>    asset_type=Asset.AssetType.FOREX,
         >>> )
         >>> order1 = self.create_order(asset_BTC, 0.1, "buy", quote=asset_quote)
         >>> order2 = self.create_order(asset_ETH, 10, "buy", quote=asset_quote)
-        >>> self.submit_order([order1, order2])
-        >>> or...
+        >>> self.submit_orders([order1, order2])
+        >>> # or...
         >>> order1 = self.create_order((asset_BTC, asset_quote), 0.1, "buy")
         >>> order2 = self.create_order((asset_ETH, asset_quote), 10, "buy")
-        >>> self.submit_order([order1, order2])
-        """
-        return self.broker.submit_orders(orders, **kwargs)
+        >>> self.submit_orders([order1, order2])
 
-    def wait_for_order_registration(self, order):
+        """
+        #self.log_message("Warning: `submit_orders` is deprecated, please use `submit_order` instead.")
+        return self.submit_order(orders, **kwargs)
+
+    def wait_for_order_registration(self, order: Order):
         """Wait for the order to be registered by the broker
 
         Parameters
@@ -1652,7 +1480,7 @@ class Strategy(_Strategy):
         """
         return self.broker.wait_for_order_registration(order)
 
-    def wait_for_order_execution(self, order):
+    def wait_for_order_execution(self, order: Order):
         """Wait for one specific order to be executed or canceled by the broker
 
         Parameters
@@ -1675,7 +1503,7 @@ class Strategy(_Strategy):
         """
         return self.broker.wait_for_order_execution(order)
 
-    def wait_for_orders_registration(self, orders):
+    def wait_for_orders_registration(self, orders: List[Order]):
         """Wait for the orders to be registered by the broker
 
         Parameters
@@ -1697,7 +1525,7 @@ class Strategy(_Strategy):
         """
         return self.broker.wait_for_orders_registration(orders)
 
-    def wait_for_orders_execution(self, orders):
+    def wait_for_orders_execution(self, orders: List[Order]):
         """Wait for a list of orders to be executed or canceled by the broker
 
         Parameters
@@ -1719,7 +1547,7 @@ class Strategy(_Strategy):
         """
         return self.broker.wait_for_orders_execution(orders)
 
-    def cancel_order(self, order):
+    def cancel_order(self, order: Order):
         """Cancel an order.
 
         Cancels a single open order provided.
@@ -1740,9 +1568,13 @@ class Strategy(_Strategy):
         >>> self.cancel_order(order)
 
         """
+        # Set the status to CANCELLING
+        order.status = Order.OrderStatus.CANCELLING
+
+        # Cancel the order
         return self.broker.cancel_order(order)
 
-    def cancel_orders(self, orders):
+    def cancel_orders(self, orders: List[Order]):
         """Cancel orders in all strategies.
 
         Cancels all open orders provided in any of the running
@@ -1791,7 +1623,7 @@ class Strategy(_Strategy):
         """
         return self.broker.cancel_open_orders(self.name)
 
-    def sell_all(self, cancel_open_orders=True):
+    def sell_all(self, cancel_open_orders: bool = True, is_multileg: bool = False):
         """Sell all strategy positions.
 
         The system will generate closing market orders for each open
@@ -1805,6 +1637,8 @@ class Strategy(_Strategy):
         cancel_open_orders : boolean
             Cancel all order if True, leave all orders in place if
             False. Default is True.
+        is_multileg : boolean
+            When True, will use multileg orders to close positions.
 
         Returns
         -------
@@ -1815,9 +1649,9 @@ class Strategy(_Strategy):
         >>> # Will close all positions for the strategy
         >>> self.sell_all()
         """
-        self.broker.sell_all(self.name, cancel_open_orders=cancel_open_orders, strategy=self)
+        self.broker.sell_all(self.name, cancel_open_orders=cancel_open_orders, strategy=self, is_multileg=is_multileg)
 
-    def get_last_price(self, asset, quote=None, exchange=None, should_use_last_close=True):
+    def get_last_price(self, asset: Union[Asset, str], quote=None, exchange=None):
         """Takes an asset and returns the last known price
 
         Makes an active call to the market to retrieve the last price.
@@ -1861,7 +1695,7 @@ class Strategy(_Strategy):
         >>> base = Asset(symbol="BTC", asset_type="crypto")
         >>> quote = Asset(symbol="USD", asset_type="forex")
         >>> last_price = self.get_last_price(base, quote=quote)
-        >>> self.log_message(f"Last price for BTC/USDT is {last_price}")
+        >>> self.log_message(f"Last price for BTC/USD is {last_price}")
 
         >>> # Will return the last price for a futures asset
         >>> self.base = Asset(
@@ -1904,17 +1738,17 @@ class Strategy(_Strategy):
             self.log_message(f"Could not get last price for {asset}", color="red")
             self.log_message(f"{e}")
             return None
-        
-    def get_quote(self, asset):
+
+    def get_quote(self, asset: Asset):
         """Get a quote for the asset.
 
-        NOTE: This currently only works with Tradier. It does not work with backtetsing or other brokers.
-        
+        NOTE: This currently only works with Tradier and IB REST. It does not work with backtetsing or other brokers.
+
         Parameters
         ----------
         asset : Asset object
             The asset for which the quote is needed.
-            
+
         Returns
         -------
         dict
@@ -1928,15 +1762,18 @@ class Strategy(_Strategy):
             self.log_message("Broker does not have a get_quote method.")
             return None
 
-        return self.broker.data_source.get_quote(asset)
+        if self.broker.option_source and asset.asset_type == "option":
+            return self.broker.option_source.get_quote(asset)
+        else:
+            return self.broker.data_source.get_quote(asset)
 
-    def get_tick(self, asset):
+    def get_tick(self, asset: Union[Asset, str]):
         """Takes an Asset and returns the last known price"""
         # TODO: Should this function be depricated? This appears to be an IBKR-only thing.
         asset = self._sanitize_user_asset(asset)
         return self.broker._get_tick(asset)
 
-    def get_last_prices(self, assets, quote=None, exchange=None):
+    def get_last_prices(self, assets: List[Asset], quote=None, exchange=None):
         """Takes a list of assets and returns the last known prices
 
         Makes an active call to the market to retrieve the last price. In backtesting will provide the close of the last complete bar.
@@ -1974,7 +1811,7 @@ class Strategy(_Strategy):
             return asset_prices
 
     # ======= Broker Methods  ============
-    def options_expiry_to_datetime_date(self, date):
+    def options_expiry_to_datetime_date(self, date: datetime.date):
         """Converts an IB Options expiry to datetime.date.
 
         Parameters
@@ -1995,7 +1832,7 @@ class Strategy(_Strategy):
         """
         return datetime.datetime.strptime(date, "%Y%m%d").date()
 
-    def get_chains(self, asset):
+    def get_chains(self, asset: Asset):
         """Returns option chains.
 
         Obtains option chain information for the asset (stock) from each
@@ -2027,35 +1864,40 @@ class Strategy(_Strategy):
         """
         asset = self._sanitize_user_asset(asset)
         return self.broker.get_chains(asset)
-    
-    def get_next_trading_day(self, date, exchange='NYSE'):
+
+    def get_next_trading_day(self, date: str, exchange="NYSE"):
         """
         Finds the next trading day for the given date and exchange.
-        
-        Parameters:
-            date (str): The date from which to find the next trading day, in 'YYYY-MM-DD' format.
-            exchange (str): The exchange calendar to use, default is 'NYSE'.
-            
-        Returns:
+
+        Parameters
+        ----------
+        date : str
+            The date from which to find the next trading day, in 'YYYY-MM-DD' format.
+        exchange : str
+            The exchange calendar to use, default is 'NYSE'.
+
+        Returns
+        -------
             next_trading_day (datetime.date): The next trading day after the given date.
         """
-        
+
         # Load the specified market calendar
         calendar = mcal.get_calendar(exchange)
-        
+
         # Convert the input string date to pandas Timestamp
         date_timestamp = pd.Timestamp(date)
-        
+
         # Get the next trading day. The schedule is inclusive of the start_date when the market is open on this day.
         # Hence, we add 1 day to the start_date to ensure we start checking from the day after.
-        schedule = calendar.schedule(start_date=date_timestamp + pd.Timedelta(days=1), end_date=date_timestamp + pd.Timedelta(days=10))
-        
+        schedule = calendar.schedule(start_date=date_timestamp + pd.Timedelta(days=1),
+                                     end_date=date_timestamp + pd.Timedelta(days=10))
+
         # The next trading day is the first entry in the schedule
         next_trading_day = schedule.index[0].date()
-        
+
         return next_trading_day
 
-    def get_chain(self, chains, exchange="SMART"):
+    def get_chain(self, chains: dict, exchange: str = "SMART"):
         """Returns option chain for a particular exchange.
 
         Takes in a full set of chains for all the exchanges and returns
@@ -2089,7 +1931,80 @@ class Strategy(_Strategy):
         """
         return self.broker.get_chain(chains)
 
-    def get_expiration(self, chains):
+    def get_chain_full_info(
+            self, 
+            asset: Asset,
+            expiry: Union[str, datetime.datetime, datetime.date], 
+            chains: dict = None, 
+            underlying_price: float = None,
+            risk_free_rate: float = None,
+            strike_min: float = None,
+            strike_max: float = None
+            ) -> pd.DataFrame:
+        """Returns full option chain information for a given asset and expiry. This will include all known broker
+        option information for each strike price, including: greeks, bid, ask, volume, open_interest etc. Not all
+        Lumibot brokers provide all of this data and tick-style data like bid/ask/open_interest are not available
+        during BackTesting.
+
+        This method can be quite slow for brokers that do not provide this data natively, as it will need to make
+        multiple API calls (1 per strike) to get all the data.  Min/Max strike values can be provided to reduce the
+        number of queries made.
+
+        Using the `chains` dictionary obtained from `get_chains` finds
+        all the options information for a given asset and expiry.
+
+        Parameters
+        ----------
+        asset : Asset object
+            The asset for which the option chain is being fetched.
+        expiry : str | datetime.datetime | datetime.date
+            The expiry date for the option chain in the format of
+            `2023-07-31`.
+        chains : dictionary of dictionaries, optional
+            The chains dictionary created by `get_chains` method. If not
+            provided, the method will fetch the chains for the asset (if needed). This is
+            needed to discover the list of strikes. Some brokers like Tradier or
+            Polygon LiveData do not need the strike list.
+        underlying_price : float, optional
+            The price of the underlying asset. If not provided, the
+            method will fetch the price from the broker. Useful to provide to reduce the
+            number of API calls.
+        risk_free_rate : float, optional
+            The risk-free rate to use in the calculations. If not
+            provided, the method will use the default risk-free rate.
+        strike_min : float, optional
+            The minimum strike price to return. If not provided, the
+            method will return all strikes.
+        strike_max : float, optional
+            The maximum strike price to return. If not provided, the
+            method will return all strikes.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame with the option chain information.
+
+        Example
+        -------
+        >>> # Will return the option chains for SPY
+        >>> asset = "SPY"
+        >>> expiry = "2023-07-31"
+        >>> df = self.get_chain_full_info(asset, expiry)
+        >>> print(f"Strike: {df.iloc[0]['strike']}, Delta: {df.iloc[0]['greeks.delta']}")
+        """
+        asset = self._sanitize_user_asset(asset)
+        risk_free_rate = risk_free_rate if risk_free_rate is not None else self.risk_free_rate
+        if underlying_price is None:
+            underlying_asset = Asset(symbol=asset.symbol, asset_type="stock")
+            und_price = self.get_last_price(underlying_asset)
+        else:
+            und_price = underlying_price
+
+        return self.broker.get_chain_full_info(asset, expiry, chains=chains, underlying_price=und_price,
+                                               risk_free_rate=risk_free_rate, strike_min=strike_min,
+                                               strike_max=strike_max)
+
+    def get_expiration(self, chains: dict):
         """Returns expiration dates for an option chain for a particular
         exchange.
 
@@ -2101,9 +2016,6 @@ class Strategy(_Strategy):
         ---------
         chains : dictionary of dictionaries
             The chains dictionary created by `get_chains` method.
-
-        exchange : str optional
-            The exchange such as `SMART`, `CBOE`. Default is `SMART`.
 
         Returns
         -------
@@ -2118,7 +2030,7 @@ class Strategy(_Strategy):
         """
         return self.broker.get_expiration(chains)
 
-    def get_multiplier(self, chains, exchange="SMART"):
+    def get_multiplier(self, chains: dict, exchange: str = "SMART"):
         """Returns option chain for a particular exchange.
 
         Using the `chains` dictionary obtained from `get_chains` finds
@@ -2147,7 +2059,7 @@ class Strategy(_Strategy):
 
         return self.broker.get_multiplier(chains, exchange=exchange)
 
-    def get_strikes(self, asset, chains=None):
+    def get_strikes(self, asset: Asset, chains: dict = None):
         """Returns a list of strikes for a give underlying asset.
 
         Using the `chains` dictionary obtained from `get_chains` finds
@@ -2178,7 +2090,20 @@ class Strategy(_Strategy):
         asset = self._sanitize_user_asset(asset)
         return self.broker.get_strikes(asset, chains)
 
-    def find_first_friday(self, timestamp):
+    def find_first_friday(self, timestamp: Union[datetime.datetime, pd.Timestamp]):
+        """Finds the first Friday of the month for a given timestamp.
+
+        Parameters
+        ----------
+        timestamp : datetime.datetime | pd.Timestamp
+            The timestamp for which the first Friday of the month is
+            needed.
+        
+        Returns
+        -------
+        datetime.datetime
+            The first Friday of the month.
+        """
         # Convert the timestamp to a datetime object if it's not already one
         if isinstance(timestamp, pd.Timestamp):
             timestamp = timestamp.to_pydatetime()
@@ -2265,11 +2190,11 @@ class Strategy(_Strategy):
 
     def get_greeks(
         self,
-        asset,
-        asset_price=None,
-        underlying_price=None,
-        risk_free_rate=None,
-        query_greeks=False,
+        asset: Asset,
+        asset_price: float = None,
+        underlying_price: float = None,
+        risk_free_rate: float = None,
+        query_greeks: bool = False,
     ):
         """Returns the greeks for the option asset at the current
         bar.
@@ -2351,6 +2276,7 @@ class Strategy(_Strategy):
             asset_price=opt_price,
             underlying_price=und_price,
             risk_free_rate=risk_free_rate,
+            query_greeks=query_greeks,
         )
 
     # ======= Data Source Methods =================
@@ -2389,8 +2315,13 @@ class Strategy(_Strategy):
         """
         return self.broker.data_source.DEFAULT_PYTZ
 
-    def get_datetime(self, adjust_for_delay=False):
+    def get_datetime(self, adjust_for_delay: bool = False):
         """Returns the current datetime according to the data source. In a backtest this will be the current bar's datetime. In live trading this will be the current datetime on the exchange.
+
+        Parameters
+        ----------
+        adjust_for_delay : bool
+            If True, will adjust the datetime for any delay in the data source.
 
         Returns
         -------
@@ -2421,7 +2352,7 @@ class Strategy(_Strategy):
         """
         return self.broker.data_source.get_timestamp()
 
-    def get_round_minute(self, timeshift=0):
+    def get_round_minute(self, timeshif: int = 0):
         """Returns the current minute rounded to the nearest minute. In a backtest this will be the current bar's timestamp. In live trading this will be the current timestamp on the exchange.
 
         Parameters
@@ -2458,7 +2389,7 @@ class Strategy(_Strategy):
         """
         return self.broker.data_source.get_last_minute()
 
-    def get_round_day(self, timeshift=0):
+    def get_round_day(self, timeshift: int = 0):
         """Returns the current day rounded to the nearest day. In a backtest this will be the current bar's timestamp. In live trading this will be the current timestamp on the exchange.
 
         Parameters
@@ -2495,7 +2426,7 @@ class Strategy(_Strategy):
         """
         return self.broker.data_source.get_last_day()
 
-    def get_datetime_range(self, length, timestep="minute", timeshift=None):
+    def get_datetime_range(self, length: int, timestep: str = "minute", timeshift: int = None):
         """Returns a list of datetimes for the given length and timestep.
 
         Parameters
@@ -2562,7 +2493,7 @@ class Strategy(_Strategy):
         """
         return self.broker.data_source.to_default_timezone(dt)
 
-    def load_pandas(self, asset, df):
+    def load_pandas(self, asset: Union[Asset, str], df: pd.DataFrame):
         asset = self._sanitize_user_asset(asset)
         self.broker.data_source.load_pandas(asset, df)
 
@@ -2622,29 +2553,6 @@ class Strategy(_Strategy):
         >>> asset = self.create(symbol="EUR", asset_type="crypto"),
         >>> asset = self.create(symbol="ETH", asset_type="crypto"),
         """
-        # If backtesting,  return existing asset if in store.
-        if self.is_backtesting and asset_type != "crypto":
-            # Check for existing asset.
-            for asset in self.broker.data_source._data_store:
-                is_symbol = asset.symbol == symbol
-                is_asset_type = asset.asset_type == asset_type
-                is_expiration = asset.expiration == expiration
-                if asset.strike != "" and strike != "":
-                    is_strike = float(asset.strike) == float(strike)
-                else:
-                    is_strike = asset.strike == strike
-                is_right = asset.right == right
-                is_multiplier = asset.multiplier == multiplier
-                if asset_type == "stock" and (is_symbol and is_asset_type and is_multiplier):
-                    return asset
-                elif asset_type == "future" and (is_symbol and is_asset_type and is_expiration and is_multiplier):
-                    return asset
-                elif asset_type == "option" and (
-                    is_symbol and is_asset_type and is_expiration and is_right and is_strike and is_multiplier
-                ):
-                    return asset
-                else:
-                    pass
 
         return Asset(
             symbol=symbol,
@@ -2655,7 +2563,16 @@ class Strategy(_Strategy):
             multiplier=multiplier,
         )
 
-    def add_marker(self, name, value=None, color=None, symbol="circle", size=None, detail_text=None, dt=None):
+    def add_marker(
+            self, 
+            name: str, 
+            value: float = None,
+            color: str = "blue", 
+            symbol: str = "circle",
+            size: int = None,
+            detail_text: str = None,
+            dt: Union[datetime.datetime, pd.Timestamp] = None
+            ):
         """Adds a marker to the indicators plot that loads after a backtest. This can be used to mark important events on the graph, such as price crossing a certain value, marking a support level, marking a resistance level, etc.
 
         Parameters
@@ -2767,7 +2684,16 @@ class Strategy(_Strategy):
 
         return df
 
-    def add_line(self, name, value, color=None, style="solid", width=None, detail_text=None, dt=None):
+    def add_line(
+            self, 
+            name: str, 
+            value: float, 
+            color: str = None,
+            style: str = "solid",
+            width: int = None,
+            detail_text: str = None,
+            dt: Union[datetime.datetime, pd.Timestamp] = None
+            ):
         """Adds a line data point to the indicator chart. This can be used to add lines such as bollinger bands, prices for specific assets, or any other line you want to add to the chart.
 
         Parameters
@@ -2866,15 +2792,32 @@ class Strategy(_Strategy):
 
         return df
 
-    def write_backtest_settings(self, settings_file):
+    def write_backtest_settings(self, settings_file: str):
+        """Writes the backtest settings to a file.
+        
+        Parameters
+        ----------
+        settings_file : str
+            The file path to write the settings to.
+            
+        Returns
+        -------
+        None
+
+        Example
+        -------
+        >>> # Will write the backtest settings to a file
+        >>> self.write_backtest_settings("backtest_settings.json")
+
+        """
         datasource = self.broker.data_source
         auto_adjust = datasource.auto_adjust if hasattr(datasource, "auto_adjust") else False
         settings = {
             "name": self.name,
-            "backtesting_start": self.backtesting_start,
-            "backtesting_end": self.backtesting_end,
+            "backtesting_start": str(self.backtesting_start),
+            "backtesting_end": str(self.backtesting_end),
             "budget": self.initial_budget,
-            "risk_free_rate": self.risk_free_rate,
+            "risk_free_rate": float(self.risk_free_rate),
             "minutes_before_closing": self.minutes_before_closing,
             "minutes_before_opening": self.minutes_before_opening,
             "sleeptime": self.sleeptime,
@@ -2982,6 +2925,16 @@ class Strategy(_Strategy):
         >>> self.log_message(f"Last price of BTC in USD: {last_ohlc['close']}, and the open price was {last_ohlc['open']}")
         """
 
+        # Get that length is type int and if not try to cast it
+        if not isinstance(length, int):
+            try:
+                length = int(length)
+            except Exception as e:
+                raise ValueError(
+                    f"Invalid length parameter in get_historical_prices() method. Length must be an int but instead got {length}, "
+                    f"which is a type {type(length)}."
+                )
+
         if quote is None:
             quote = self.quote_asset
 
@@ -2992,24 +2945,35 @@ class Strategy(_Strategy):
         asset = self.crypto_assets_to_tuple(asset, quote)
         if not timestep:
             timestep = self.broker.data_source.MIN_TIMESTEP
-        return self.broker.data_source.get_historical_prices(
-            asset,
-            length,
-            timestep=timestep,
-            timeshift=timeshift,
-            exchange=exchange,
-            include_after_hours=include_after_hours,
-            quote=quote,
-        )
+        if self.broker.option_source and asset.asset_type == "option":
+            return self.broker.option_source.get_historical_prices(
+                asset,
+                length,
+                timestep=timestep,
+                timeshift=timeshift,
+                exchange=exchange,
+                include_after_hours=include_after_hours,
+                quote=quote,
+            )
+        else:
+            return self.broker.data_source.get_historical_prices(
+                asset,
+                length,
+                timestep=timestep,
+                timeshift=timeshift,
+                exchange=exchange,
+                include_after_hours=include_after_hours,
+                quote=quote,
+            )
 
     def get_symbol_bars(
         self,
-        asset,
-        length,
-        timestep="",
-        timeshift=None,
-        quote=None,
-        exchange=None,
+        asset: Union[Asset, str],
+        length: int,
+        timestep: str = "",
+        timeshift: datetime.timedelta = None,
+        quote: Asset = None,
+        exchange: str = None,
     ):
         """
         This method is deprecated and will be removed in a future version.
@@ -3031,14 +2995,14 @@ class Strategy(_Strategy):
 
     def get_historical_prices_for_assets(
         self,
-        assets,
-        length,
-        timestep="minute",
-        timeshift=None,
-        chunk_size=100,
-        max_workers=200,
-        exchange=None,
-        include_after_hours=True,
+        assets: List[Union[Asset, str]],
+        length: int,
+        timestep: str = "minute",
+        timeshift: datetime.timedelta = None,
+        chunk_size: int = 100,
+        max_workers: int = 200,
+        exchange: str = None,
+        include_after_hours: bool = True,
     ):
         """Get historical pricing data for the list of assets.
 
@@ -3113,13 +3077,13 @@ class Strategy(_Strategy):
 
     def get_bars(
         self,
-        assets,
-        length,
-        timestep="minute",
-        timeshift=None,
-        chunk_size=100,
-        max_workers=200,
-        exchange=None,
+        assets: List[Union[Asset, str]],
+        length: int,
+        timestep: str = "minute",
+        timeshift: datetime.timedelta = None,
+        chunk_size: int = 100,
+        max_workers: int = 200,
+        exchange: str = None,
     ):
         """
         This method is deprecated and will be removed in a future version.
@@ -3139,7 +3103,7 @@ class Strategy(_Strategy):
             exchange=exchange,
         )
 
-    def start_realtime_bars(self, asset, keep_bars=30):
+    def start_realtime_bars(self, asset: Asset, keep_bars: int = 30):
         """Starts a real time stream of tickers for Interactive Broker
         only.
 
@@ -3173,7 +3137,7 @@ class Strategy(_Strategy):
         """
         self.broker._start_realtime_bars(asset=asset, keep_bars=keep_bars)
 
-    def get_realtime_bars(self, asset):
+    def get_realtime_bars(self, asset: Asset):
         """Retrieve the real time bars as dataframe.
 
         Returns the current set of real time bars as a dataframe.
@@ -3216,7 +3180,7 @@ class Strategy(_Strategy):
             return pd.DataFrame(rtb).set_index("datetime")
         return rtb
 
-    def cancel_realtime_bars(self, asset):
+    def cancel_realtime_bars(self, asset: Asset):
         """Cancels a stream of real time bars for a given asset.
 
         Cancels the real time bars for the given asset.
@@ -3239,7 +3203,7 @@ class Strategy(_Strategy):
         """
         self.broker._cancel_realtime_bars(asset)
 
-    def get_yesterday_dividend(self, asset):
+    def get_yesterday_dividend(self, asset: Asset):
         """Get the dividend for the previous day.
 
         Parameters
@@ -3263,7 +3227,7 @@ class Strategy(_Strategy):
         asset = self._sanitize_user_asset(asset)
         return self.broker.data_source.get_yesterday_dividend(asset)
 
-    def get_yesterday_dividends(self, assets):
+    def get_yesterday_dividends(self, assets: List[Asset]):
         """Get the dividends for the previous day.
 
         Parameters
@@ -3285,9 +3249,13 @@ class Strategy(_Strategy):
 
         """
         assets = [self._sanitize_user_asset(asset) for asset in assets]
-        return self.broker.data_source.get_yesterday_dividends(assets, quote=self.quote_asset)
+        if self.broker and self.broker.data_source:
+            return self.broker.data_source.get_yesterday_dividends(assets, quote=self.quote_asset)
+        else:
+            self.log_message("Broker or data source is not available.")
+            return None
 
-    def update_parameters(self, parameters):
+    def update_parameters(self, parameters: dict):
         """Update the parameters of the strategy.
 
         Parameters
@@ -3314,7 +3282,7 @@ class Strategy(_Strategy):
         """
         return self.parameters
 
-    def set_parameters(self, parameters):
+    def set_parameters(self, parameters: dict):
         """Set the default parameters of the strategy.
 
         Parameters
@@ -3337,7 +3305,7 @@ class Strategy(_Strategy):
 
         return self.parameters
 
-    def set_parameter_defaults(self, parameters):
+    def set_parameter_defaults(self, parameters: dict):
         """Set the default parameters of the strategy.
 
         Parameters
@@ -3361,7 +3329,7 @@ class Strategy(_Strategy):
 
     # ======= Lifecycle Methods ====================
 
-    def initialize(self, parameters=None):
+    def initialize(self, parameters: dict = None):
         """Initialize the strategy. Use this lifecycle method to initialize parameters.
 
         This method is called once before the first time the strategy is run.
@@ -3408,7 +3376,7 @@ class Strategy(_Strategy):
         pass
 
     def before_market_opens(self):
-        """Use this lifecycle method to execude code
+        """Use this lifecycle method to execute code
         self.minutes_before_opening minutes before opening.
 
         Returns
@@ -3458,7 +3426,7 @@ class Strategy(_Strategy):
         """
         pass
 
-    def trace_stats(self, context, snapshot_before):
+    def trace_stats(self, context: dict, snapshot_before: dict):
         """Lifecycle method that will be executed after
         on_trading_iteration. context is a dictionary containing
         on_trading_iteration locals() in last call. Use this
@@ -3493,7 +3461,7 @@ class Strategy(_Strategy):
         return {}
 
     def before_market_closes(self):
-        """Use this lifecycle method to execude code before the market closes. You can use self.minutes_before_closing to set the number of minutes before closing
+        """Use this lifecycle method to execute code before the market closes. You can use self.minutes_before_closing to set the number of minutes before closing
 
         Parameters
         ----------
@@ -3556,7 +3524,7 @@ class Strategy(_Strategy):
 
     # ====== Events Methods ========================
 
-    def on_bot_crash(self, error):
+    def on_bot_crash(self, error: Exception):
         """Use this lifecycle event to execute code
         when an exception is raised and the bot crashes
 
@@ -3601,7 +3569,7 @@ class Strategy(_Strategy):
         """
         pass
 
-    def on_new_order(self, order):
+    def on_new_order(self, order: Order):
         """Use this lifecycle event to execute code
         when a new order is being processed by the broker
 
@@ -3622,7 +3590,7 @@ class Strategy(_Strategy):
         """
         pass
 
-    def on_canceled_order(self, order):
+    def on_canceled_order(self, order: Order):
         """Use this lifecycle event to execute code when an order is canceled.
 
         Parameters
@@ -3642,7 +3610,14 @@ class Strategy(_Strategy):
         """
         pass
 
-    def on_partially_filled_order(self, position, order, price, quantity, multiplier):
+    def on_partially_filled_order(
+            self, 
+            position: Position, 
+            order: Order, 
+            price: float, 
+            quantity: Union[float, int],
+            multiplier: float
+            ):
         """Use this lifecycle event to execute code
         when an order has been partially filled by the broker
 
@@ -3657,7 +3632,7 @@ class Strategy(_Strategy):
         price : float
             The price of the fill.
 
-        quantity : int
+        quantity : float or int
             The quantity of the fill.
 
         multiplier : float
@@ -3676,7 +3651,14 @@ class Strategy(_Strategy):
         """
         pass
 
-    def on_filled_order(self, position, order, price, quantity, multiplier):
+    def on_filled_order(
+            self,
+            position: Position,
+            order: Order,
+            price: float,
+            quantity: Union[float, int],
+            multiplier: float
+            ):
         """Use this lifecycle event to execute code when an order has been filled by the broker.
 
         Parameters
@@ -3690,7 +3672,7 @@ class Strategy(_Strategy):
         price : float
             The price of the fill.
 
-        quantity : float
+        quantity : float or int
             The quantity of the fill.
 
         multiplier : float
@@ -3716,7 +3698,7 @@ class Strategy(_Strategy):
         """
         pass
 
-    def on_parameters_updated(self, parameters):
+    def on_parameters_updated(self, parameters: dict):
         """Use this lifecycle event to execute code when the parameters are updated.
 
         Parameters
@@ -3735,458 +3717,219 @@ class Strategy(_Strategy):
         """
         pass
 
-    # ====== Messaging Methods ========================
-
-    def send_discord_message(self, message, image_buf=None, silent=True):
+    def run_live(self):
         """
-        Sends a message to Discord
+        Executes the trading strategy in Live mode
+
+        Returns:
+            None
         """
+        trader = Trader()
 
-        # Check if we are in backtesting mode, if so, don't send the message
-        if self.is_backtesting:
-            return
+        trader.add_strategy(self)
+        trader.run_all()
+    
+    @classmethod
+    def backtest(
+        self,
+        datasource_class: Type[DataSource],
+        backtesting_start: datetime.datetime,
+        backtesting_end: datetime.datetime,
+        minutes_before_closing: int = 1,
+        minutes_before_opening: int = 60,
+        sleeptime: int = 1,
+        stats_file: str = None,
+        risk_free_rate: float = None,
+        logfile: str = None,
+        config: dict = None,
+        auto_adjust: bool = False,
+        name: str = None,
+        budget: float = None,
+        benchmark_asset: Union[str, Asset] = "SPY",
+        plot_file_html: str = None,
+        trades_file: str = None,
+        settings_file: str = None,
+        pandas_data: List[Data] = None,
+        quote_asset: Asset = Asset(symbol="USD", asset_type="forex"),
+        starting_positions: dict = None,
+        show_plot: bool = True,
+        tearsheet_file: str = None,
+        save_tearsheet: bool = True,
+        show_tearsheet: bool = True,
+        parameters: dict = {},
+        buy_trading_fees: List[TradingFee] = [],
+        sell_trading_fees: List[TradingFee] = [],
+        polygon_api_key: str = None,
+        indicators_file: str = None,
+        show_indicators: bool = True,
+        save_logfile: bool = False,
+        thetadata_username: str = None,
+        thetadata_password: str = None,
+        use_quote_data: bool = False,
+        show_progress_bar: bool = True,
+        quiet_logs: bool = True,
+        trader_class: Type[Trader] = Trader,
+        **kwargs,
+    ):
+        """Backtest a strategy.
 
-        # Check if the message is empty
-        if message == "" or message is None:
-            # If the message is empty, log and return
-            self.logger.debug("The discord message is empty. Please provide a message to send to Discord.")
-            return
+        Parameters
+        ----------
+        datasource_class : class
+            The datasource class to use. For example, if you want to use the yahoo finance datasource, then you
+            would pass YahooDataBacktesting as the datasource_class.
+        backtesting_start : datetime.datetime
+            The start date of the backtesting period.
+        backtesting_end : datetime.datetime
+            The end date of the backtesting period.
+        minutes_before_closing : int
+            The number of minutes before closing that the minutes_before_closing strategy method will be called.
+        minutes_before_opening : int
+            The number of minutes before opening that the minutes_before_opening strategy method will be called.
+        sleeptime : int
+            The number of seconds to sleep between each iteration of the backtest.
+        stats_file : str
+            The file to write the stats to.
+        risk_free_rate : float
+            The risk free rate to use.
+        logfile : str
+            The file to write the log to.
+        config : dict
+            The config to use to set up the brokers in live trading.
+        auto_adjust : bool
+            Whether or not to automatically adjust the strategy.
+        name : str
+            The name of the strategy.
+        budget : float
+            The initial budget to use for the backtest.
+        benchmark_asset : str or Asset
+            The benchmark asset to use for the backtest to compare to. If it is a string then it will be converted
+            to a stock Asset object.
+        plot_file_html : str
+            The file to write the plot html to.
+        trades_file : str
+            The file to write the trades to.
+        settings_file : str
+            The file to write the settings to.
+        pandas_data : list of Data
+            A list of Data objects that are used when the datasource_class object is set to PandasDataBacktesting.
+            This contains all the data that will be used in backtesting.
+        quote_asset : Asset (crypto)
+            An Asset object for the crypto currency that will get used
+            as a valuation asset for measuring overall porfolio values.
+            Usually USDT, USD, USDC.
+        starting_positions : dict
+            A dictionary of starting positions for each asset. For example,
+            if you want to start with $100 of SPY, and $200 of AAPL, then you
+            would pass in starting_positions={'SPY': 100, 'AAPL': 200}.
+        show_plot : bool
+            Whether to show the plot.
+        show_tearsheet : bool
+            Whether to show the tearsheet.
+        save_tearsheet : bool
+            Whether to save the tearsheet.
+        parameters : dict
+            A dictionary of parameters to pass to the strategy. These parameters
+            must be set up within the initialize() method.
+        buy_trading_fees : list of TradingFee objects
+            A list of TradingFee objects to apply to the buy orders during backtests.
+        sell_trading_fees : list of TradingFee objects
+            A list of TradingFee objects to apply to the sell orders during backtests.
+        polygon_api_key : str
+            The polygon api key to use for polygon data. Only required if you are using PolygonDataBacktesting as
+            the datasource_class.
+        indicators_file : str
+            The file to write the indicators to.
+        show_indicators : bool
+            Whether to show the indicators plot.
+        save_logfile : bool
+            Whether to save the logs to a file. If True, the logs will be saved to the logs directory. Defaults to False.
+            Turning on this option will slow down the backtest.
+        thetadata_username : str
+            The username to use for the ThetaDataBacktesting datasource. Only required if you are using ThetaDataBacktesting as the datasource_class.
+        thetadata_password : str
+            The password to use for the ThetaDataBacktesting datasource. Only required if you are using ThetaDataBacktesting as the datasource_class.
+        use_quote_data : bool
+            Whether to use quote data for the backtest. Defaults to False. If True, the backtest will use quote data for the backtest. (Currently this is specific to ThetaData)
+            When set to true this requests Quote data in addition to OHLC which adds time to backtests.
+        show_progress_bar : bool
+            Whether to show the progress bar. Defaults to True.
+        quiet_logs : bool
+            Whether to quiet noisy logs by setting the log level to ERROR. Defaults to True.
+        trader_class : Trader class
+            The trader class to use. Defaults to Trader.
 
-        # Check if the discord webhook URL is set
-        if self.discord_webhook_url is None:
-            # If the webhook URL is not set, log and return
-            self.logger.debug(
-                "The discord webhook URL is not set. Please set the discord_webhook_url parameter in the strategy \
-                initialization if you want to send messages to Discord."
-            )
-            return
+        Returns
+        -------
+        result : dict
+            A dictionary of the backtest results. Eg.
 
-        # Remove the extra spaces at the beginning of each line
-        message = "\n".join(line.lstrip() for line in message.split("\n"))
+        Examples
+        --------
 
-        # Get the webhook URL from the environment variables
-        webhook_url = self.discord_webhook_url
-
-        # The payload for text content
-        payload = {"content": message}
-
-        # If silent is true, set the discord message to be silent
-        if silent:
-            payload["flags"] = [4096]
-
-        # Check if we have an image
-        if image_buf is not None:
-            # The files that you want to send
-            files = {"file": ("results.png", image_buf, "image/png")}
-
-            # Make a POST request to the webhook URL with the payload and file
-            response = requests.post(webhook_url, data=payload, files=files)
-        else:
-            # Make a POST request to the webhook URL with the payload
-            response = requests.post(webhook_url, data=payload)
-
-        # Check if the message was sent successfully
-        if response.status_code == 200 or response.status_code == 204:
-            self.logger.info("Discord message sent successfully.")
-        else:
-            self.logger.error(
-                f"Failed to send message to Discord. Status code: {response.status_code}, message: {response.text}"
-            )
-
-    def send_spark_chart_to_discord(self, stats_df, portfolio_value, now, days=180):
-        # Check if we are in backtesting mode, if so, don't send the message
-        if self.is_backtesting:
-            return
-
-        # Only keep the stats for the past X days
-        stats_df = stats_df.loc[stats_df["datetime"] >= (now - pd.Timedelta(days=days))]
-
-        # Set the default color
-        color = "black"
-
-        # Check what return we made over the past week
-        if stats_df.shape[0] > 0:
-            # Resanple the stats dataframe to daily but keep the datetime column
-            stats_df = stats_df.resample("D", on="datetime").last().reset_index()
-
-            # Remove nan values
-            stats_df = stats_df.dropna()
-
-            # Get the portfolio value at the beginning of the dataframe
-            portfolio_value_start = stats_df.iloc[0]["portfolio_value"]
-
-            # Calculate the return over the past 7 days
-            total_return = ((portfolio_value / portfolio_value_start) - 1) * 100
-
-            # Check if we made a positive return, if so, set the color to green, otherwise set it to red
-            if total_return > 0:
-                color = "green"
-            else:
-                color = "red"
-
-        # Plotting the DataFrame
-        plt.figure()
-
-        # Create an axes instance, setting the facecolor to white
-        ax = plt.axes(facecolor="white")
-
-        # Convert 'datetime' to Matplotlib's numeric format right after cleaning
-        stats_df['mpl_datetime'] = mdates.date2num(stats_df['datetime'])
-
-        # Plotting with a thicker line
-        ax = stats_df.plot(
-            x="mpl_datetime",
-            y="portfolio_value",
-            kind="line",
-            linewidth=5,
-            color=color,
-            # label="Account Value",
-            ax=ax,
-            legend=False,
+        >>> from datetime import datetime
+        >>> from lumibot.backtesting import YahooDataBacktesting
+        >>> from lumibot.strategies import Strategy
+        >>>
+        >>> # A simple strategy that buys AAPL on the first day
+        >>> class MyStrategy(Strategy):
+        >>>    def on_trading_iteration(self):
+        >>>        if self.first_iteration:
+        >>>            order = self.create_order("AAPL", quantity=1, side="buy")
+        >>>            self.submit_order(order)
+        >>>
+        >>> # Create a backtest
+        >>> backtesting_start = datetime(2018, 1, 1)
+        >>> backtesting_end = datetime(2018, 1, 31)
+        >>>
+        >>> # The benchmark asset to use for the backtest to compare to
+        >>> benchmark_asset = Asset(symbol="QQQ", asset_type="stock")
+        >>>
+        >>> backtest = MyStrategy.backtest(
+        >>>     datasource_class=YahooDataBacktesting,
+        >>>     backtesting_start=backtesting_start,
+        >>>     backtesting_end=backtesting_end,
+        >>>     benchmark_asset=benchmark_asset,
+        >>> )
+        """
+        results, strategy = self.run_backtest(
+            datasource_class=datasource_class,
+            backtesting_start=backtesting_start,
+            backtesting_end=backtesting_end,
+            minutes_before_closing=minutes_before_closing,
+            minutes_before_opening=minutes_before_opening,
+            sleeptime=sleeptime,
+            stats_file=stats_file,
+            risk_free_rate=risk_free_rate,
+            logfile=logfile,
+            config=config,
+            auto_adjust=auto_adjust,
+            name=name,
+            budget=budget,
+            benchmark_asset=benchmark_asset,
+            plot_file_html=plot_file_html,
+            trades_file=trades_file,
+            settings_file=settings_file,
+            pandas_data=pandas_data,
+            quote_asset=quote_asset,
+            starting_positions=starting_positions,
+            show_plot=show_plot,
+            tearsheet_file=tearsheet_file,
+            save_tearsheet=save_tearsheet,
+            show_tearsheet=show_tearsheet,
+            parameters=parameters,
+            buy_trading_fees=buy_trading_fees,
+            sell_trading_fees=sell_trading_fees,
+            polygon_api_key=polygon_api_key,
+            indicators_file=indicators_file,
+            show_indicators=show_indicators,
+            save_logfile=save_logfile,
+            thetadata_username=thetadata_username,
+            thetadata_password=thetadata_password,
+            use_quote_data=use_quote_data,
+            show_progress_bar=show_progress_bar,
+            quiet_logs=quiet_logs,
+            trader_class=trader_class,
+            **kwargs,
         )
-        plt.title(f"{self.name} Account Value", fontsize=32, pad=60)
-        plt.xlabel("")
-        plt.ylabel("")
-
-        # # Increase the font size of the tick labels
-        # ax.tick_params(axis="both", which="major", labelsize=18)
-
-        # Use a custom formatter for currency
-        formatter = ticker.FuncFormatter(lambda x, pos: "${:1,}".format(int(x)))
-        ax.yaxis.set_major_formatter(formatter)
-
-        # Custom formatter function
-        def custom_date_formatter(x, pos):
-            try:
-                date = mdates.num2date(x)
-                if pos == 0:  # First tick
-                    return date.strftime("%d\n%b\n%Y")
-                else:  # Other ticks
-                    return date.strftime("%d")
-            except Exception:
-                return ""
-
-        # Set the locator for the x-axis to automatically find the dates
-        locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
-        ax.xaxis.set_major_locator(locator)
-
-        # Use custom formatter for the x-axis
-        ax.xaxis.set_major_formatter(ticker.FuncFormatter(custom_date_formatter))
-
-        # Use the ConciseDateFormatter to format the x-axis dates
-        formatter = mdates.ConciseDateFormatter(locator)
-
-        # Increase the font size of the tick labels
-        ax.tick_params(axis="x", which="major", labelsize=18, rotation=0)  # For x-axis
-        ax.tick_params(axis="y", which="major", labelsize=18)  # For y-axis
-
-        # Center align x-axis labels
-        for label in ax.get_xticklabels():
-            label.set_horizontalalignment("center")
-
-        # Save the plot to an in-memory file
-        buf = io.BytesIO()
-        plt.savefig(buf, format="png", bbox_inches="tight", pad_inches=0.25)
-        buf.seek(0)
-
-        # Send the image to Discord
-        self.send_discord_message("-----------\n", buf)
-
-    def send_result_text_to_discord(self, returns_text, portfolio_value, cash):
-        # Check if we are in backtesting mode, if so, don't send the message
-        if self.is_backtesting:
-            return
-
-        # Get the current positions
-        positions = self.get_positions()
-
-        # Create the positions text
-        positions_details_list = []
-        for position in positions:
-            # Check if the position asset is the quote asset
-
-            if position.asset == self.quote_asset:
-                last_price = 1
-            else:
-                # Get the last price
-                last_price = self.get_last_price(position.asset)
-
-            # Make sure last_price is a number
-            if last_price is None or not isinstance(last_price, (int, float, Decimal)):
-                self.logger.info(f"Last price for {position.asset} is not a number: {last_price}")
-                continue
-
-            # Calculate teh value of the position
-            position_value = position.quantity * last_price
-
-            # If option, multiply % of portfolio by 100
-            if position.asset.asset_type == "option":
-                position_value = position_value * 100
-
-            # Calculate the percent of the portfolio that this position represents
-            percent_of_portfolio = position_value / portfolio_value
-
-            # Add the position details to the list
-            positions_details_list.append(
-                {
-                    "asset": position.asset,
-                    "quantity": position.quantity,
-                    "value": position_value,
-                    "percent_of_portfolio": percent_of_portfolio,
-                }
-            )
-
-        # Sort the positions by the percent of the portfolio
-        positions_details_list = sorted(positions_details_list, key=lambda x: x["percent_of_portfolio"], reverse=True)
-
-        # Create the positions text
-        positions_text = ""
-        for position in positions_details_list:
-            # positions_text += f"{position.quantity:,.2f} {position.asset} ({percent_of_portfolio:,.0%})\n"
-            positions_text += (
-                f"{position['quantity']:,.2f} {position['asset']} ({position['percent_of_portfolio']:,.0%})\n"
-            )
-
-        # Create a message to send to Discord (round the values to 2 decimal places)
-        message = f"""
-                **Update for {self.name}**
-                **Account Value:** ${portfolio_value:,.2f}
-                **Cash:** ${cash:,.2f}
-                {returns_text}
-                **Positions:**
-                {positions_text}
-                """
-
-        # Remove any leading whitespace
-        # Remove the extra spaces at the beginning of each line
-        message = "\n".join(line.lstrip() for line in message.split("\n"))
-
-        # Add self.discord_account_summary_footer to the message
-        if hasattr(self, "discord_account_summary_footer") and self.discord_account_summary_footer is not None:
-            message += f"{self.discord_account_summary_footer}\n\n"
-
-        # Add powered by Lumiwealth to the message
-        message += "[**Powered by 💡 Lumiwealth**](<https://lumiwealth.com>)\n-----------"
-
-        # Send the message to Discord
-        self.send_discord_message(message, None)
-
-    def send_account_summary_to_discord(self):
-        # Check if we are in backtesting mode, if so, don't send the message
-        if self.is_backtesting:
-            return
-
-        # Check if last_account_summary_dt has been set, if not, set it to None
-        if not hasattr(self, "last_account_summary_dt"):
-            self.last_account_summary_dt = None
-
-        # Check if we should send an account summary to Discord
-        should_send_account_summary = self.should_send_account_summary_to_discord()
-        if not should_send_account_summary:
-            return
-
-        # Get the current portfolio value
-        portfolio_value = self.get_portfolio_value()
-
-        # Get the current cash
-        cash = self.get_cash()
-
-        # # Get the datetime
-        now = pd.Timestamp(datetime.datetime.now()).tz_localize("America/New_York")
-
-        # Get the returns
-        returns_text, stats_df = self.calculate_returns()
-
-        # Send a spark chart to Discord
-        self.send_spark_chart_to_discord(stats_df, portfolio_value, now)
-
-        # Send the results text to Discord
-        self.send_result_text_to_discord(returns_text, portfolio_value, cash)
-
-    def get_stats_from_database(self, stats_table_name):
-        # Load the stats dataframe from the database
-        stats_df = pd.read_sql_table(stats_table_name, self.account_history_db_connection_str)
-
-        return stats_df
-
-    def to_sql(self, stats_df, stats_table_name, connection_string, if_exists, index):
-        # Save the stats to the database
-        stats_df.to_sql(
-            stats_table_name,
-            connection_string,
-            if_exists=if_exists,
-            index=index,
-        )
-
-    def calculate_returns(self):
-        # Check if we are in backtesting mode, if so, don't send the message
-        if self.is_backtesting:
-            return
-
-        # Calculate the return over the past 24 hours, 7 days, and 30 days using the stats dataframe
-
-        # Get the current time in New York
-        ny_tz = pytz.timezone("America/New_York")
-
-        # Get the datetime
-        now = datetime.datetime.now(ny_tz)
-
-        # Load the stats dataframe from the database
-        stats_df = self.get_stats_from_database(STATS_TABLE_NAME)
-
-        # Only keep the stats for this strategy ID
-        stats_df = stats_df.loc[stats_df["strategy_id"] == self.strategy_id]
-
-        # Convert the datetime column to a datetime
-        stats_df["datetime"] = pd.to_datetime(stats_df["datetime"])  # , utc=True)
-
-        # Convert the datetime column to UTC without converting the time data
-        stats_df["datetime"] = stats_df["datetime"].dt.tz_convert(None)
-
-        # Explicitly set the time zone to New York without converting the time data
-        stats_df["datetime"] = stats_df["datetime"].dt.tz_localize("America/New_York", ambiguous="infer")
-
-        # Get the stats
-        stats_new = pd.DataFrame(
-            {
-                "id": str(uuid.uuid4()),
-                "datetime": [now],
-                "portfolio_value": [self.get_portfolio_value()],
-                "cash": [self.get_cash()],
-                "strategy_id": [self.strategy_id],
-            }
-        )
-
-        # Add the new stats to the existing stats
-        stats_df = pd.concat([stats_df, stats_new])
-
-        # # Convert the datetime column to eastern time
-        stats_df["datetime"] = stats_df["datetime"].dt.tz_convert("America/New_York")
-
-        # Remove any duplicate rows
-        stats_df = stats_df[~stats_df["datetime"].duplicated(keep="last")]
-
-        # Sort the stats by the datetime column
-        stats_df = stats_df.sort_values("datetime")
-
-        # Set the strategy ID column to be the strategy ID
-        stats_df["strategy_id"] = self.strategy_id
-
-        # Index should be a uuid, fill the index with uuids
-        stats_df.loc[pd.isna(stats_df["id"]), "id"] = [
-            str(uuid.uuid4()) for _ in range(len(stats_df.loc[pd.isna(stats_df["id"])]))
-        ]
-
-        # Check that the stats dataframe has at least 1 row and contains the portfolio_value column
-        if stats_df.shape[0] > 0 and "portfolio_value" in stats_df.columns:
-            # Save the stats to the database
-            self.to_sql(stats_new, STATS_TABLE_NAME, self.account_history_db_connection_str, "append", False)
-
-            # Get the current portfolio value
-            portfolio_value = self.get_portfolio_value()
-
-            # Initialize the results
-            results_text = ""
-
-            # Add results for the past 24 hours
-            # Get the datetime 24 hours ago
-            datetime_24_hours_ago = now - pd.Timedelta(days=1)
-            # Get the df for the past 24 hours
-            stats_past_24_hours = stats_df.loc[stats_df["datetime"] >= datetime_24_hours_ago]
-            # Check if there are any stats for the past 24 hours
-            if stats_past_24_hours.shape[0] > 0:
-                # Get the portfolio value 24 hours ago
-                portfolio_value_24_hours_ago = stats_past_24_hours.iloc[0]["portfolio_value"]
-                # Calculate the return over the past 24 hours
-                return_24_hours = ((portfolio_value / portfolio_value_24_hours_ago) - 1) * 100
-                # Add the return to the results
-                results_text += f"**24 hour Return:** {return_24_hours:,.2f}% (${(portfolio_value - portfolio_value_24_hours_ago):,.2f} change)\n"
-
-            # Add results for the past 7 days
-            # Get the datetime 7 days ago
-            datetime_7_days_ago = now - pd.Timedelta(days=7)
-            # First check if we have stats that are at least 7 days old
-            if stats_df["datetime"].min() < datetime_7_days_ago:
-                # Get the df for the past 7 days
-                stats_past_7_days = stats_df.loc[stats_df["datetime"] >= datetime_7_days_ago]
-                # Check if there are any stats for the past 7 days
-                if stats_past_7_days.shape[0] > 0:
-                    # Get the portfolio value 7 days ago
-                    portfolio_value_7_days_ago = stats_past_7_days.iloc[0]["portfolio_value"]
-                    # Calculate the return over the past 7 days
-                    return_7_days = ((portfolio_value / portfolio_value_7_days_ago) - 1) * 100
-                    # Add the return to the results
-                    results_text += f"**7 day Return:** {return_7_days:,.2f}% (${(portfolio_value - portfolio_value_7_days_ago):,.2f} change)\n"
-
-                    ## If we are up more than pct_up_threshold over the past 7 days, send a message to Discord
-                    PERCENT_UP_THRESHOLD = 3
-                    if return_7_days > PERCENT_UP_THRESHOLD:
-                        # Create a message to send to Discord
-                        message = f"""
-                                🚀 {self.name} is up {return_7_days:,.2f}% in 7 days.
-                                """
-
-                        # Remove any leading whitespace
-                        # Remove the extra spaces at the beginning of each line
-                        message = "\n".join(line.lstrip() for line in message.split("\n"))
-
-                        # Send the message to Discord
-                        self.send_discord_message(message, silent=False)
-
-            # Add results for the past 30 days
-            # Get the datetime 30 days ago
-            datetime_30_days_ago = now - pd.Timedelta(days=30)
-            # First check if we have stats that are at least 30 days old
-            if stats_df["datetime"].min() < datetime_30_days_ago:
-                # Get the df for the past 30 days
-                stats_past_30_days = stats_df.loc[stats_df["datetime"] >= datetime_30_days_ago]
-                # Check if there are any stats for the past 30 days
-                if stats_past_30_days.shape[0] > 0:
-                    # Get the portfolio value 30 days ago
-                    portfolio_value_30_days_ago = stats_past_30_days.iloc[0]["portfolio_value"]
-                    # Calculate the return over the past 30 days
-                    return_30_days = ((portfolio_value / portfolio_value_30_days_ago) - 1) * 100
-                    # Add the return to the results
-                    results_text += f"**30 day Return:** {return_30_days:,.2f}% (${(portfolio_value - portfolio_value_30_days_ago):,.2f} change)\n"
-
-            # Get inception date
-            inception_date = stats_df["datetime"].min()
-
-            # Inception date text
-            inception_date_text = f"{inception_date.strftime('%b %d, %Y')}"
-
-            # Add results since inception
-            # Get the portfolio value at inception
-            portfolio_value_inception = stats_df.iloc[0]["portfolio_value"]
-            # Calculate the return since inception
-            return_since_inception = ((portfolio_value / portfolio_value_inception) - 1) * 100
-            # Add the return to the results
-            results_text += f"**Since Inception ({inception_date_text}):** {return_since_inception:,.2f}% (${(portfolio_value - portfolio_value_inception):,.2f} change)\n"
-
-            return results_text, stats_df
-
-        else:
-            return "Not enough data to calculate returns", stats_df
-
-    def should_send_account_summary_to_discord(self):
-        # Check if account_history_db_connection_str has been set, if not, return False
-        if not hasattr(self, "account_history_db_connection_str") or self.account_history_db_connection_str is None:
-            return False
-
-        # Check if it has been at least 24 hours since the last account summary
-        if (
-            self.last_account_summary_dt is None
-            or (datetime.datetime.now() - self.last_account_summary_dt).total_seconds()
-            > 60 * 60 * 24  # 60 seconds * 60 minutes * 24 hours
-        ):
-            # Set the last account summary datetime to now
-            self.last_account_summary_dt = datetime.datetime.now()
-
-            # Sleep for 5 seconds to make sure all the orders go through first
-            time.sleep(5)
-
-            # Return True because we should send the account summary to Discord
-            return True
-
-        # Return False because we should not send the account summary to Discord
-        return False
+        return results

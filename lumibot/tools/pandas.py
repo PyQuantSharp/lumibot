@@ -1,4 +1,5 @@
 from datetime import time
+from decimal import Decimal
 
 import pandas as pd
 
@@ -42,3 +43,26 @@ def fill_void(df_, interval, end):
     df_ = pd.concat([df_, missing_lines])
     df_ = df_.sort_index()
     return df_
+
+
+def print_full_pandas_dataframes():
+    """
+    Show the whole dataframe when printing pandas dataframes
+    """
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_colwidth', None)
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.width', 1000)
+
+
+def set_pandas_float_display_precision(precision: int = 5):
+    format_str = '{:.' + str(precision) + 'f}'
+    pd.set_option('display.float_format', format_str.format)
+
+
+def prettify_dataframe_with_decimals(df: pd.DataFrame, decimal_places: int = 5) -> str:
+    def decimal_formatter(x):
+        if isinstance(x, Decimal):
+            return f"{x:.{decimal_places}f}"
+        return x
+    return df.to_string(formatters={col: decimal_formatter for col in df.columns})

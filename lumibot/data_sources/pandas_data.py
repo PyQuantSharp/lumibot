@@ -1,10 +1,10 @@
 import logging
 from collections import defaultdict, OrderedDict
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pandas as pd
 from lumibot.data_sources import DataSourceBacktesting
-from lumibot.entities import Asset, AssetsMapping, Bars
+from lumibot.entities import Asset, Bars
 
 
 class PandasData(DataSourceBacktesting):
@@ -61,7 +61,7 @@ class PandasData(DataSourceBacktesting):
                 new_pandas_data[key] = data
 
         return new_pandas_data
-    
+
     def load_data(self):
         self._data_store = self.pandas_data
         self._date_index = self.update_date_index()
@@ -196,6 +196,28 @@ class PandasData(DataSourceBacktesting):
                 return price
             except Exception as e:
                 logging.info(f"Error getting last price for {tuple_to_find}: {e}")
+                return None
+        else:
+            return None
+
+    def get_quote(self, asset, quote=None, exchange=None):
+        # Takes an asset and returns the last known price
+        tuple_to_find = self.find_asset_in_data_store(asset, quote)
+
+        if tuple_to_find in self._data_store:
+            data = self._data_store[tuple_to_find]
+            try:
+                dt = self.get_datetime()
+                ohlcv_bid_ask_dict = data.get_quote(dt)
+
+                # Check if ohlcv_bid_ask_dict is NaN
+                if pd.isna(ohlcv_bid_ask_dict):
+                    logging.info(f"Error getting ohlcv_bid_ask for {tuple_to_find}: ohlcv_bid_ask_dict is NaN")
+                    return None
+
+                return ohlcv_bid_ask_dict
+            except Exception as e:
+                logging.info(f"Error getting ohlcv_bid_ask for {tuple_to_find}: {e}")
                 return None
         else:
             return None
@@ -390,8 +412,12 @@ class PandasData(DataSourceBacktesting):
         # Convert timestep string to timedelta and get start datetime
         td, ts_unit = self.convert_timestep_str_to_timedelta(timestep)
 
-        # Multiply td by length to get the end datetime
-        td *= length
+        if ts_unit == "day":
+            weeks_requested = length // 5  # Full trading week is 5 days
+            extra_padding_days = weeks_requested * 3  # to account for 3day weekends
+            td = timedelta(days=length + extra_padding_days)
+        else:
+            td *= length
 
         if start_dt is not None:
             start_datetime = start_dt - td
@@ -405,7 +431,14 @@ class PandasData(DataSourceBacktesting):
         return start_datetime, ts_unit
 
     def get_historical_prices(
-        self, asset, length, timestep="", timeshift=None, quote=None, exchange=None, include_after_hours=True
+        self, 
+        asset: Asset,
+        length: int,
+        timestep: str = None,
+        timeshift: int = None,
+        quote: Asset = None,
+        exchange: str = None,
+        include_after_hours: bool = True,
     ):
         """Get bars for a given asset"""
         if isinstance(asset, str):
@@ -413,7 +446,6 @@ class PandasData(DataSourceBacktesting):
 
         if not timestep:
             timestep = self.get_timestep()
-
         response = self._pull_source_symbol_bars(
             asset,
             length,

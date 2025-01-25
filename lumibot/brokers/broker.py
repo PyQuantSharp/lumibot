@@ -7,24 +7,32 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from queue import Queue
 from threading import RLock, Thread
+from typing import Union
 
 import pandas as pd
 import pandas_market_calendars as mcal
 from dateutil import tz
 from termcolor import colored
 
-from lumibot.data_sources import DataSource
-from lumibot.entities import Asset, Order, Position
-from lumibot.trading_builtins import SafeList
+from ..data_sources import DataSource
+from ..entities import Asset, Order, Position
+from ..trading_builtins import SafeList
 
 
 class CustomLoggerAdapter(logging.LoggerAdapter):
     def process(self, msg, kwargs):
-        # Use an f-string for formatting
-        return f'[{self.extra["strategy_name"]}] {msg}', kwargs
+        # Check if the level is enabled to avoid formatting costs if not necessary
+        if self.logger.isEnabledFor(kwargs.get('level', logging.INFO)):
+            # Lazy formatting of the message
+            return f'[{self.extra["strategy_name"]}] {msg}', kwargs
+        else:
+            return msg, kwargs
 
     def update_strategy_name(self, new_strategy_name):
         self.extra['strategy_name'] = new_strategy_name
+        # Pre-format part of the log message that's static or changes infrequently
+        self.formatted_prefix = f'[{new_strategy_name}]'
+
 
 class Broker(ABC):
     # Metainfo
@@ -38,7 +46,8 @@ class Broker(ABC):
     CASH_SETTLED = "cash_settled"
     ERROR_ORDER = "error"
 
-    def __init__(self, name="", connect_stream=True, data_source: DataSource = None, config=None, max_workers=20):
+    def __init__(self, name="", connect_stream=True, data_source: DataSource = None, option_source: DataSource = None,
+                 config=None, max_workers=20, extended_trading_minutes=0):
         """Broker constructor"""
         # Shared Variables between threads
         self.name = name
@@ -48,6 +57,7 @@ class Broker(ABC):
         self._canceled_orders = SafeList(self._lock)
         self._partially_filled_orders = SafeList(self._lock)
         self._filled_orders = SafeList(self._lock)
+        self._error_orders = SafeList(self._lock)
         self._filled_positions = SafeList(self._lock)
         self._subscribers = SafeList(self._lock)
         self._is_stream_subscribed = False
@@ -57,10 +67,15 @@ class Broker(ABC):
         self._config = config
         self._strategy_name = ""
         self.data_source = data_source
+        self.option_source = option_source
         self.max_workers = min(max_workers, 200)
         self.quote_assets = set()  # Quote positions will never be removed from tracking during sync operations
 
-        # Set the the state of first iteration to True. This will later be updated to False by the strategy executor
+        # Brokers like Tradier allows SPY option trading for 15 additional min after market close
+        # This will need to be set directly by the strategy
+        self.extended_trading_minutes = extended_trading_minutes
+
+        # Set the state of first iteration to True. This will later be updated to False by the strategy executor
         self._first_iteration = True
 
         # Create an adapter with 'strategy_name' set to the instance's name
@@ -95,18 +110,18 @@ class Broker(ABC):
     # ================================ Required Implementations========================
     # =========Order Handling=======================
     @abstractmethod
-    def cancel_order(self, order: Order):
+    def cancel_order(self, order: Order) -> None:
         """Cancel an order at the broker"""
         pass
 
     @abstractmethod
-    def _submit_order(self, order: Order):
+    def _submit_order(self, order: Order) -> Order:
         """Submit an order to the broker"""
         pass
 
     # =========Account functions=======================
     @abstractmethod
-    def _get_balances_at_broker(self, quote_asset: Asset) -> tuple:
+    def _get_balances_at_broker(self, quote_asset: Asset, strategy) -> tuple:
         """
         Get the actual cash balance at the broker.
         Parameters
@@ -125,7 +140,7 @@ class Broker(ABC):
         pass
 
     @abstractmethod
-    def get_historical_account_value(self):
+    def get_historical_account_value(self) -> dict:
         """
         Get the historical account value of the account.
         TODO: Fill out the docstring with more information.
@@ -154,13 +169,24 @@ class Broker(ABC):
     # =========Broker Positions=======================
 
     @abstractmethod
-    def _pull_positions(self, strategy):
-        """Get the account positions. return a list of
-        position objects"""
+    def _pull_positions(self, strategy: 'Strategy') -> list[Position]:
+        """
+        Get the account positions. return a list of position objects
+
+        Parameters
+        ----------
+        strategy : Strategy
+            The strategy object to pull the positions for
+
+        Returns
+        -------
+        list[Position]
+            A list of position objects
+        """
         pass
 
     @abstractmethod
-    def _pull_position(self, strategy, asset):
+    def _pull_position(self, strategy: 'Strategy', asset: Asset) -> Position:
         """
         Pull a single position from the broker that matches the asset and strategy. If no position is found, None is
         returned.
@@ -182,21 +208,50 @@ class Broker(ABC):
     # =========Broker Orders=======================
 
     @abstractmethod
-    def _parse_broker_order(self, response, strategy_name, strategy_object=None):
-        """parse a broker order representation
-        to an order object"""
+    def _parse_broker_order(self, response: dict, strategy_name: str, strategy_object: 'Strategy' = None) -> Order:
+        """
+        Parse a broker order representation to an order object
+
+        Parameters
+        ----------
+        response : dict
+            The broker order representation
+        strategy_name : str
+            The name of the strategy that placed the order
+
+        Returns
+        -------
+        Order
+            The order object
+        """
         pass
 
     @abstractmethod
-    def _pull_broker_order(self, identifier):
-        """Get a broker order representation by its id"""
+    def _pull_broker_order(self, identifier: str) -> Order:
+        """
+        Get a broker order representation by its id
+
+        Parameters
+        ----------
+        identifier : str
+            The identifier of the order to pull
+
+        Returns
+        -------
+        Order
+            The order object
+        """
         pass
 
     @abstractmethod
-    def _pull_broker_all_orders(self):
+    def _pull_broker_all_orders(self) -> list[Order]:
         """
         Get the broker open orders
-        TODO: Fill in with the expected output of this function.
+        
+        Returns
+        -------
+        list[Order]
+            A list of order objects
         """
         pass
 
@@ -223,7 +278,7 @@ class Broker(ABC):
                 if position_lumi.quantity != position.quantity:
                     position_lumi.quantity = position.quantity
 
-                # No current brokers have anyway to distinguish between strategies for an open position.
+                # No current brokers have any way to distinguish between strategies for an open position.
                 # Therefore, we will just update the strategy to the current strategy.
                 # This is added here because with initial polling, no strategy is set for the positions so we
                 # can create ones that have no strategy attached. This will ensure that all stored positions have a
@@ -233,7 +288,7 @@ class Broker(ABC):
             else:
                 # Add to positions in lumibot, position does not exist
                 # in lumibot.
-                if position.quantity != 0:
+                if position.quantity != 0.0:
                     self._filled_positions.append(position)
 
         # Now iterate through lumibot positions.
@@ -267,7 +322,10 @@ class Broker(ABC):
         float
             The last known price of the asset.
         """
-        return self.data_source.get_last_price(asset, quote=quote, exchange=exchange)
+        if self.option_source and asset.asset_type == "option":
+            return self.option_source.get_last_price(asset, quote=quote, exchange=exchange)
+        else:
+            return self.data_source.get_last_price(asset, quote=quote, exchange=exchange)
 
     def get_last_prices(self, assets, quote=None, exchange=None):
         """
@@ -294,7 +352,8 @@ class Broker(ABC):
     @property
     def _tracked_orders(self):
         return (self._unprocessed_orders.get_list() + self._new_orders.get_list() +
-                self._partially_filled_orders.get_list())
+                self._partially_filled_orders.get_list() + self._filled_orders.get_list() + 
+                self._error_orders.get_list() + self._canceled_orders.get_list())
 
     def is_backtesting_broker(self):
         return self.IS_BACKTESTING_BROKER
@@ -352,6 +411,40 @@ class Broker(ABC):
                          Expiration Date Format: 2023-07-31
         """
         return chains[exchange] if exchange in chains else chains
+
+    def get_chain_full_info(self, asset: Asset, expiry: str, chains=None, underlying_price=None, risk_free_rate=None,
+                            strike_min=None, strike_max=None) -> pd.DataFrame:
+        """
+        Get the full chain information for an option asset, including: greeks, bid/ask, open_interest, etc. For
+        brokers that do not support this, greeks will be calculated locally. For brokers like Tradier this function
+        is much faster as only a single API call can be done to return the data for all options simultaneously.
+
+        Parameters
+        ----------
+        asset : Asset
+            The option asset to get the chain information for.
+        expiry
+            The expiry date of the option chain.
+        chains
+            The chains dictionary created by `get_chains` method. This is used
+            to get the list of strikes needed to calculate the greeks.
+        underlying_price
+            Price of the underlying asset.
+        risk_free_rate
+            The risk-free rate used in interest calculations.
+        strike_min
+            The minimum strike price to return in the chain. If None, will return all strikes.
+        strike_max
+            The maximum strike price to return in the chain. If None, will return all strikes.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the full chain information for the option asset. Greeks columns will be named as
+            'greeks.delta', 'greeks.theta', etc.
+        """
+        return self.data_source.get_chain_full_info(asset, expiry, chains, underlying_price, risk_free_rate,
+                                                    strike_min, strike_max)
 
     def get_greeks(self, asset, asset_price, underlying_price, risk_free_rate, query_greeks=False):
         """
@@ -474,28 +567,14 @@ class Broker(ABC):
 
             self._orders_queue.task_done()
 
-    def _submit_orders(self, orders):
-        with ThreadPoolExecutor(
-            max_workers=self.max_workers,
-            thread_name_prefix=f"{self.name}_submitting_orders",
-        ) as executor:
-            tasks = []
-            for order in orders:
-                tasks.append(executor.submit(self._submit_order, order))
-
-            result = []
-            for task in as_completed(tasks):
-                result.append(task.result())
-
-        return result
-
     # =========Internal functions==============
 
     def _set_initial_positions(self, strategy):
         """Set initial positions"""
         positions = self._pull_positions(strategy)
         for pos in positions:
-            self._filled_positions.append(pos)
+            if pos.quantity != 0.0:
+                self._filled_positions.append(pos)
 
     def _process_new_order(self, order):
         # Check if this order already exists in self._new_orders based on the identifier
@@ -519,7 +598,6 @@ class Broker(ABC):
 
     def _process_partially_filled_order(self, order, price, quantity):
         self._new_orders.remove(order.identifier, key="identifier")
-
         order.add_transaction(price, quantity)
         order.status = self.PARTIALLY_FILLED_ORDER
         order.set_partially_filled()
@@ -543,7 +621,6 @@ class Broker(ABC):
         self._new_orders.remove(order.identifier, key="identifier")
         self._unprocessed_orders.remove(order.identifier, key="identifier")
         self._partially_filled_orders.remove(order.identifier, key="identifier")
-
         order.add_transaction(price, quantity)
         order.status = self.FILLED_ORDER
         order.set_filled()
@@ -561,6 +638,16 @@ class Broker(ABC):
             self._process_crypto_quote(order, quantity, price)
 
         return position
+    
+    def _process_error_order(self, order, error):
+        self._new_orders.remove(order.identifier, key="identifier")
+        self._unprocessed_orders.remove(order.identifier, key="identifier")
+        self._partially_filled_orders.remove(order.identifier, key="identifier")
+        self._filled_orders.remove(order.identifier, key="identifier")
+        order.status = self.ERROR_ORDER
+        order.set_error(error)
+        self._error_orders.append(order)
+        return order
 
     def _process_cash_settlement(self, order, price, quantity):
         self.logger.info(
@@ -573,7 +660,6 @@ class Broker(ABC):
         self._new_orders.remove(order.identifier, key="identifier")
         self._unprocessed_orders.remove(order.identifier, key="identifier")
         self._partially_filled_orders.remove(order.identifier, key="identifier")
-
         order.add_transaction(price, quantity)
         order.status = self.CASH_SETTLED
         order.set_filled()
@@ -633,14 +719,14 @@ class Broker(ABC):
         dt_now_utc = datetime.now(timezone.utc)
 
         date = date if date is not None else dt_now_utc
-        trading_hours = mkt_cal.schedule(start_date=date, end_date=date + timedelta(weeks=1)).head(2)
+        trading_hours = mkt_cal.schedule(start_date=date, end_date=date + pd.DateOffset(weeks=1)).head(2)
 
         row = 0 if not next else 1
         th = trading_hours.iloc[row, :]
         market_open, market_close = th.iloc[0], th.iloc[1]
 
         if close:
-            return market_close
+            return market_close + timedelta(minutes=self.extended_trading_minutes)
         else:
             return market_open
 
@@ -652,6 +738,9 @@ class Broker(ABC):
 
     def market_close_time(self):
         return self.utc_to_local(self.market_hours(close=True))
+
+    def market_open_time(self):
+        return self.utc_to_local(self.market_hours(close=False))
 
     def is_market_open(self):
         """Determines if the market is open.
@@ -758,7 +847,8 @@ class Broker(ABC):
     def get_tracked_orders(self, strategy=None, asset=None) -> list[Order]:
         """get all tracked orders for a given strategy"""
         result = []
-        for order in self._tracked_orders:
+        tracked_orders = self._tracked_orders
+        for order in tracked_orders:
             if (strategy is None or order.strategy == strategy) and (asset is None or order.asset == asset):
                 result.append(order)
 
@@ -766,7 +856,7 @@ class Broker(ABC):
 
     def get_all_orders(self) -> list[Order]:
         """get all tracked and completed orders"""
-        orders = (self._tracked_orders + self._canceled_orders.get_list() + self._filled_orders.get_list())
+        orders = self._tracked_orders
         return orders
 
     def get_order(self, identifier) -> Order:
@@ -792,9 +882,17 @@ class Broker(ABC):
         position = self.get_tracked_position(strategy, asset)
         if position is not None:
             quantity = position.quantity
+
+        # Get all tracked orders for the strategy and asset
         orders = self.get_tracked_orders(strategy, asset)
+
+        # Add the quantity of the order to the total
         for order in orders:
-            quantity += order.get_increment()
+            # Check if the order status is new (only new orders are considered because they are not filled yet
+            # and the quantity does not include what will be filled)
+            if order.status == Order.OrderStatus.NEW:
+                # If the order is not filled, add the quantity of the order to the total
+                quantity += float(order.get_increment())
 
         if type(quantity) == Decimal:
             if quantity.as_tuple().exponent > -4:
@@ -808,7 +906,23 @@ class Broker(ABC):
         result = []
         if broker_orders is not None:
             for broker_order in broker_orders:
-                result.append(self._parse_broker_order(broker_order, strategy_name, strategy_object=strategy_object))
+                # First try to parse the parent order
+                order = self._parse_broker_order(broker_order, strategy_name, strategy_object=strategy_object)
+
+                # Check if it is a multileg order and Parse the legs
+                if isinstance(broker_order, dict) and "leg" in broker_order and isinstance(broker_order["leg"], list):
+                    parsed_legs = []
+                    for leg in broker_order["leg"]:
+                        order_leg = self._parse_broker_order(leg, strategy_name, strategy_object=strategy_object)
+                        order_leg.parent_identifier = order.identifier
+                        parsed_legs.append(order_leg)
+
+                    # Add the legs to the parent order
+                    order.child_orders = parsed_legs
+
+                # Add the parent order to the result
+                result.append(order)
+
         else:
             self.logger.warning("No orders found in broker._parse_broker_orders: the broker_orders object is None")
 
@@ -829,13 +943,32 @@ class Broker(ABC):
         result = self._parse_broker_orders(response, strategy_name, strategy_object=strategy_object)
         return result
 
-    def submit_order(self, order):
-        """Submit an order for an asset"""
-        self._orders_queue.put(order)
+    def submit_order(self, order) -> Order:
+        """Conform an order for an asset to broker constraints and submit it."""
+        self._conform_order(order)
+        return self._submit_order(order)
 
-    def submit_orders(self, orders, **kwargs):
+    def _conform_order(self, order):
+        """Conform an order to broker constraints. Derived brokers should implement this method."""
+        pass
+
+    def submit_orders(self, orders, **kwargs) -> Union[Order, list[Order]]:
         """Submit orders"""
-        self._orders_queue.put(orders)
+        if hasattr(self, '_submit_orders'):
+            return self._submit_orders(orders, **kwargs)
+        else:
+            with ThreadPoolExecutor(
+                max_workers=self.max_workers,
+                thread_name_prefix=f"{self.name}_submitting_orders",
+            ) as executor:
+                tasks = []
+                for order in orders:
+                    tasks.append(executor.submit(self._submit_order, order))
+
+                result = []
+                for task in as_completed(tasks):
+                    result.append(task.result())
+                return result
 
     def wait_for_order_registration(self, order):
         """Wait for the order to be registered by the broker"""
@@ -889,7 +1022,7 @@ class Broker(ABC):
                 return 1
         return 0
 
-    def sell_all(self, strategy_name, cancel_open_orders=True, strategy=None):
+    def sell_all(self, strategy_name, cancel_open_orders=True, strategy=None, is_multileg=False):
         """sell all positions"""
         self.logger.warning(f"Selling all positions for {strategy_name} strategy")
         if cancel_open_orders:
@@ -913,7 +1046,8 @@ class Broker(ABC):
             else:
                 order = position.get_selling_order()
                 orders.append(order)
-        self.submit_orders(orders)
+
+        self.submit_orders(orders, is_multileg=is_multileg)
 
     # =========Subscribers/Strategies functions==============
 
@@ -967,6 +1101,8 @@ class Broker(ABC):
         subscriber = self._get_subscriber(order.strategy)
         if subscriber:
             subscriber.add_event(subscriber.PARTIALLY_FILLED_ORDER, payload)
+        else:
+            self.logger.error(f"Subscriber {order.strategy} not found", color="red")
 
     def _on_filled_order(self, position, order, price, quantity, multiplier):
         """notify relevant subscriber/strategy about
@@ -984,6 +1120,8 @@ class Broker(ABC):
         subscriber = self._get_subscriber(order.strategy)
         if subscriber:
             subscriber.add_event(subscriber.FILLED_ORDER, payload)
+        else:
+            self.logger.error(colored(f"Subscriber {order.strategy} not found", color="red"))
 
     # ==========Processing streams data=======================
 
@@ -994,18 +1132,43 @@ class Broker(ABC):
         """Processes any held trade notifications."""
         while len(self._held_trades) > 0:
             th = self._held_trades.pop(0)
+
+            # Unpack the held trade event
+            stored_order = th[0]
+            type_event = th[1]
+            price = th[2]
+            filled_quantity = th[3]
+            multiplier = th[4]
+
+            # Log that the trade event was received
+            self.logger.info(
+                f"Processing held trade event. Trade event received for stored_order: {stored_order}, type_event: {type_event}, price: {price}, filled_quantity: {filled_quantity}, multiplier: {multiplier}"
+            )
+
+            # Process the trade event
             self._process_trade_event(
-                th[0],
-                th[1],
-                price=th[2],
-                filled_quantity=th[3],
-                multiplier=th[4],
+                stored_order,
+                type_event,
+                price=price,
+                filled_quantity=filled_quantity,
+                multiplier=multiplier,
             )
 
     def _process_trade_event(self, stored_order, type_event, price=None, filled_quantity=None, multiplier=1):
         """process an occurred trading event and update the
         corresponding order"""
+        # Log that the trade event was received
+        self.logger.info(
+            f"Processing trade event. Trade event received for {stored_order.strategy} strategy: {type_event} {stored_order.symbol}, processed by broker {self.name}"
+        )
+
         if self._hold_trade_events and not self.IS_BACKTESTING_BROKER:
+            # Log that the trade event was held
+            self.logger.info(
+                f"Trade event held for {stored_order.strategy} strategy: {type_event} {stored_order.symbol}, processed by broker {self.name}. self._hold_trade_events is {self._hold_trade_events}"
+            )
+
+            # Hold the trade event
             self._held_trades.append(
                 (
                     stored_order,
@@ -1028,12 +1191,11 @@ class Broker(ABC):
             )
 
         if filled_quantity is not None:
-            error = ValueError(f"filled_quantity must be a positive integer or float, received {filled_quantity} instead")
+            error = ValueError(
+                f"filled_quantity must be an integer or float, received {filled_quantity} instead")
             try:
                 if not isinstance(filled_quantity, float):
                     filled_quantity = float(filled_quantity)
-                if filled_quantity < 0:
-                    raise error
             except ValueError:
                 raise error
 
@@ -1044,21 +1206,21 @@ class Broker(ABC):
             except ValueError:
                 raise error
 
-        if type_event == self.NEW_ORDER:
+        if Order.is_equivalent_status(type_event, self.NEW_ORDER):
             stored_order = self._process_new_order(stored_order)
             self._on_new_order(stored_order)
-        elif type_event == self.CANCELED_ORDER:
+        elif Order.is_equivalent_status(type_event, self.CANCELED_ORDER):
             # Do not cancel or re-cancel already completed orders
             if stored_order.is_active():
                 stored_order = self._process_canceled_order(stored_order)
                 self._on_canceled_order(stored_order)
-        elif type_event == self.PARTIALLY_FILLED_ORDER:
+        elif Order.is_equivalent_status(type_event, self.PARTIALLY_FILLED_ORDER):
             stored_order, position = self._process_partially_filled_order(stored_order, price, filled_quantity)
             self._on_partially_filled_order(position, stored_order, price, filled_quantity, multiplier)
-        elif type_event == self.FILLED_ORDER:
+        elif Order.is_equivalent_status(type_event, self.FILLED_ORDER):
             position = self._process_filled_order(stored_order, price, filled_quantity)
             self._on_filled_order(position, stored_order, price, filled_quantity, multiplier)
-        elif type_event == self.CASH_SETTLED:
+        elif Order.is_equivalent_status(type_event, self.CASH_SETTLED):
             self._process_cash_settlement(stored_order, price, filled_quantity)
             stored_order.type = self.CASH_SETTLED
         else:
@@ -1079,11 +1241,11 @@ class Broker(ABC):
             "multiplier": multiplier,
             "trade_cost": stored_order.trade_cost,
             "time_in_force": stored_order.time_in_force,
-            "asset.right": stored_order.asset.right,
-            "asset.strike": stored_order.asset.strike,
-            "asset.multiplier": stored_order.asset.multiplier,
-            "asset.expiration": stored_order.asset.expiration,
-            "asset.asset_type": stored_order.asset.asset_type,
+            "asset.right": stored_order.asset.right if stored_order.asset is not None else None,
+            "asset.strike": stored_order.asset.strike if stored_order.asset is not None else None,
+            "asset.multiplier": stored_order.asset.multiplier if stored_order.asset is not None else None,
+            "asset.expiration": stored_order.asset.expiration if stored_order.asset is not None else None,
+            "asset.asset_type": stored_order.asset.asset_type if stored_order.asset is not None else None,
         }
         # Create a DataFrame with the new row
         new_row_df = pd.DataFrame(new_row, index=[0])

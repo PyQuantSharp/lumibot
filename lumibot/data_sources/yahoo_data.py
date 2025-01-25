@@ -8,6 +8,8 @@ from lumibot.data_sources import DataSourceBacktesting
 from lumibot.entities import Asset, Bars
 from lumibot.tools import YahooHelper
 
+logger = logging.getLogger(__name__)
+
 
 class YahooData(DataSourceBacktesting):
     SOURCE = "YAHOO"
@@ -59,12 +61,12 @@ class YahooData(DataSourceBacktesting):
         self, asset, length, timestep=MIN_TIMESTEP, timeshift=None, quote=None, exchange=None, include_after_hours=True
     ):
         if exchange is not None:
-            logging.warning(
+            logger.warning(
                 f"the exchange parameter is not implemented for YahooData, but {exchange} was passed as the exchange"
             )
 
         if quote is not None:
-            logging.warning(f"quote is not implemented for YahooData, but {quote} was passed as the quote")
+            logger.warning(f"quote is not implemented for YahooData, but {quote} was passed as the quote")
 
         interval = self._parse_source_timestep(timestep, reverse=True)
         if asset in self._data_store:
@@ -83,13 +85,16 @@ class YahooData(DataSourceBacktesting):
             data = self._append_data(asset, data)
 
         if timestep == "day":
-            # Get the last minute of self._datetime to get the current bar
+            # Get the previous days bar
             dt = self._datetime.replace(hour=23, minute=59, second=59, microsecond=999999)
             end = dt - timedelta(days=1)
         else:
             end = self._datetime.replace(second=59, microsecond=999999)
 
         if timeshift:
+            # Ensure timeshift is a timedelta object
+            if isinstance(timeshift, int):
+                timeshift = timedelta(days=timeshift)
             end = end - timeshift
 
         end = self.to_default_timezone(end)
@@ -104,7 +109,7 @@ class YahooData(DataSourceBacktesting):
         """pull broker bars for a list assets"""
 
         if quote is not None:
-            logging.warning(f"quote is not implemented for YahooData, but {quote} was passed as the quote")
+            logger.warning(f"quote is not implemented for YahooData, but {quote} was passed as the quote")
 
         interval = self._parse_source_timestep(timestep, reverse=True)
         missing_assets = [asset.symbol for asset in assets if asset not in self._data_store]
@@ -121,7 +126,7 @@ class YahooData(DataSourceBacktesting):
 
     def _parse_source_symbol_bars(self, response, asset, quote=None, length=None):
         if quote is not None:
-            logging.warning(f"quote is not implemented for YahooData, but {quote} was passed as the quote")
+            logger.warning(f"quote is not implemented for YahooData, but {quote} was passed as the quote")
 
         bars = Bars(response, self.SOURCE, asset, raw=response)
         return bars
